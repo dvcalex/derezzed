@@ -1,5 +1,16 @@
 # derezzed
 WIP toy graphics engine
+
+## Features
+- CMake build system
+    - Engine builds as static library
+    - each app has its own CMakeLists.txt that links against the engine
+- SDL3 for windowing, input, media, etc.
+- Swappable (at compile time) rendering backend
+    - OpenGL
+- DOD focus (WIP)
+- Demos
+
 ## Build
 
 ```bash
@@ -20,7 +31,7 @@ Output goes to `build/debug/bin/` or `build/release/bin/`.
 
 ## Demos
 
-Live in demo folder, run like above.
+Live in demo folder, build and run like above. 
 
 ## Writing an App
 
