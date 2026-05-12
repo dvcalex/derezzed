@@ -1,6 +1,5 @@
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
-#include <exception>
 
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
