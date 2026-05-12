@@ -1,0 +1,53 @@
+# Build output
+build/
+out/
+cmake-build-*/
+
+# Object and binary files
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+*.elf
+*.gch
+*.pch
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+CMakeLists.txt.user
+CMakeUserPresets.json
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+_deps/
+
+# IDE
+.vscode/
+.idea/
+.zed/
+*.code-workspace
+*.iml
+
+# clangd cache
+.cache/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Misc
+*.swp
+*.swo
+*~
