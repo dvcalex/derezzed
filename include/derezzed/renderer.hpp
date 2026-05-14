@@ -30,5 +30,9 @@ public:
 private:
     SDL_GLContext context = nullptr;
     std::vector<DrawCommand> draw_commands;
+
+    // uint32_t last_shader_binds = 0;
+    // uint32_t last_vertex_layout_binds = 0;
+    // uint32_t last_draws = 0;
 };
 } // namespace drz

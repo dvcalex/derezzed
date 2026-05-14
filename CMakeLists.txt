@@ -12,6 +12,7 @@ find_package(SDL3 REQUIRED CONFIG)
 
 add_library(${PROJECT_NAME} STATIC
     src/engine.cpp
+    src/logger.cpp
     src/gl/shader.cpp
     src/gl/mesh.cpp
     src/gl/renderer.cpp
