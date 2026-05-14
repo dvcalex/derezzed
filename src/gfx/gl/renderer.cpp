@@ -1,4 +1,4 @@
-#include <derezzed/renderer.hpp>
+#include <drz/gfx/renderer.hpp>
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
 #include <stdexcept>

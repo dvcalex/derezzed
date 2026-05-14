@@ -7,8 +7,8 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_main.h>
 
-#include <derezzed/engine.hpp>
-#include <derezzed/app.hpp>
+#include <drz/core/engine.hpp>
+#include <drz/core/app.hpp>
 
 #include <stdexcept>
 #include <string>

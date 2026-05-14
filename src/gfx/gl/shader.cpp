@@ -1,4 +1,4 @@
-#include <derezzed/shader.hpp>
+#include <drz/gfx/shader.hpp>
 
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>

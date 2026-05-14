@@ -1,4 +1,4 @@
-#include <derezzed/mesh.hpp>
+#include <drz/gfx/mesh.hpp>
 
 #include <glad/gl.h>
 

@@ -1,6 +1,6 @@
 add_executable(hello main.cpp)
 
-target_link_libraries(hello PRIVATE Derezzed SDL3::SDL3 OpenGL::GL)
+target_link_libraries(hello PRIVATE drz SDL3::SDL3 OpenGL::GL)
 
 # Copy shaders to build output
 add_custom_command(TARGET hello POST_BUILD

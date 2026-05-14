@@ -1,8 +1,8 @@
-#include <derezzed/engine.hpp>
-#include <derezzed/renderer.hpp>
-#include <derezzed/shader.hpp>
-#include <derezzed/mesh.hpp>
-#include <derezzed/app.hpp>
+#include <drz/core/engine.hpp>
+#include <drz/core/app.hpp>
+#include <drz/gfx/renderer.hpp>
+#include <drz/gfx/shader.hpp>
+#include <drz/gfx/mesh.hpp>
 
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
