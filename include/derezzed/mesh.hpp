@@ -57,4 +57,42 @@ private:
     uint32_t m_vertex_count = 0;
     uint32_t m_index_count = 0;
 };
+
+struct QuadMesh : public Mesh {
+    QuadMesh() : Mesh(positions, {}, uvs, indices) {}
+
+private:
+    inline static const glm::vec3 positions[4] = {
+        {-0.5f, 0.5f, 0.0f},
+        {-0.5f, -0.5f, 0.0f},
+        {0.5f, -0.5f, 0.0f},
+        {0.5f, 0.5f, 0.0f},
+    };
+    inline static const glm::vec2 uvs[4] = {
+        {0.0f, 1.0f},
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+    };
+    inline static const uint32_t indices[6] = {0, 1, 2, 2, 3, 0};
+};
+
+struct FullscreenQuadMesh : public Mesh {
+    FullscreenQuadMesh() : Mesh(positions, {}, uvs, indices) {}
+
+private:
+    inline static const glm::vec3 positions[4] = {
+        {-1.f, 1.f, 0.0f},
+        {-1.f, -1.f, 0.0f},
+        {1.f, -1.f, 0.0f},
+        {1.f, 1.f, 0.0f},
+    };
+    inline static const glm::vec2 uvs[4] = {
+        {0.0f, 1.0f},
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+    };
+    inline static const uint32_t indices[6] = {0, 1, 2, 2, 3, 0};
+};
 } // namespace drz

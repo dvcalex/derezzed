@@ -42,3 +42,4 @@ if(DRZ_BACKEND_GL)
 endif()
 
 add_subdirectory(demo/hello)
+add_subdirectory(demo/matrix-rain)

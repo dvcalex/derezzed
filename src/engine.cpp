@@ -78,14 +78,15 @@ void Engine::tick() {
 SDL_AppResult Engine::handle_event(const SDL_Event& event) {
     // Handle all engine-level events
     switch (event.type) {
-    case SDL_EVENT_WINDOW_RESIZED:
-        int w, h;
+    case SDL_EVENT_WINDOW_RESIZED: {
+        int w = 0;
+        int h = 0;
         SDL_GetWindowSizeInPixels(window, &w, &h);
         renderer->set_viewport(w, h); // update viewport to match new window size
         width = w;
         height = h;
         break;
-
+    }
     default:
         break;
     }

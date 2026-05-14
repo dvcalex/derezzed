@@ -11,6 +11,7 @@ Checks: >
     misc-unused-parameters,
     cppcoreguidelines-init-variables,
     -performance-avoid-endl
+    -bugprone-easily-swappable-parameters
 
 HeaderFilterRegex: '^(src|include)/.*'
 WarningsAsErrors: ''

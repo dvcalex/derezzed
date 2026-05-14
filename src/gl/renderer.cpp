@@ -18,7 +18,8 @@ Renderer::Renderer(SDL_Window* window) {
     }
 
     // Set initial viewport in pixel size
-    int w, h;
+    int w = 0;
+    int h = 0;
     SDL_GetWindowSizeInPixels(window, &w, &h);
     glViewport(0, 0, w, h); // set viewport to window size
 }
