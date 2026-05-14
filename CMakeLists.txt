@@ -8,7 +8,24 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-find_package(SDL3 REQUIRED CONFIG)
+# Prefer a system-installed SDL3; fall back to fetching from source.
+find_package(SDL3 CONFIG QUIET)
+if(NOT SDL3_FOUND)
+  message(STATUS "System SDL3 not found... fetching from source.")
+  include(FetchContent)
+  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+  set(SDL_STATIC ON  CACHE BOOL "" FORCE)
+  set(SDL_TEST   OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(
+        SDL3
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG        release-3.2.0
+        GIT_SHALLOW    TRUE
+    )
+  FetchContent_MakeAvailable(SDL3)
+else()
+  message(STATUS "Using system SDL3 (${SDL3_VERSION}).")
+endif()
 
 add_library(${PROJECT_NAME} STATIC
     src/core/engine.cpp
