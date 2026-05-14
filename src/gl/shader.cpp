@@ -1,4 +1,4 @@
-#include <derezzed/gl/shader.hpp>
+#include <derezzed/shader.hpp>
 
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -50,7 +50,7 @@ static GLuint compile_shader(GLenum type, const std::string& source) {
 
 namespace drz {
 
-GLint Shader::get_uniform_location(const std::string& name) {
+int32_t Shader::get_uniform_location(const std::string& name) {
     if (uniform_location_cache.find(name) != uniform_location_cache.end()) {
         return uniform_location_cache[name];
     }
@@ -113,36 +113,43 @@ Shader::~Shader() {
     glDeleteProgram(program_id);
 }
 
-void Shader::bind() const {
-    glUseProgram(program_id);
+Shader::Shader(Shader&& other) noexcept
+    : program_id(other.program_id), uniform_location_cache(std::move(other.uniform_location_cache)) {
+    other.program_id = 0; // prevent gl from releasing program
 }
 
-void Shader::unbind() const {
-    glUseProgram(0);
+Shader& Shader::operator=(Shader&& other) noexcept {
+    if (this != &other) {
+        glDeleteProgram(program_id); // release current program
+        program_id = other.program_id;
+        other.program_id = 0; // prevent gl from releasing program
+        uniform_location_cache = std::move(other.uniform_location_cache);
+    }
+    return *this;
 }
 
 void Shader::set_uniform(const std::string& name, int value) {
-    glUniform1i(get_uniform_location(name), value);
+    glProgramUniform1i(program_id, get_uniform_location(name), value);
 }
 
 void Shader::set_uniform(const std::string& name, float value) {
-    glUniform1f(get_uniform_location(name), value);
+    glProgramUniform1f(program_id, get_uniform_location(name), value);
 }
 
 void Shader::set_uniform(const std::string& name, const glm::vec2& value) {
-    glUniform2f(get_uniform_location(name), value.x, value.y);
+    glProgramUniform2f(program_id, get_uniform_location(name), value.x, value.y);
 }
 
 void Shader::set_uniform(const std::string& name, const glm::vec3& value) {
-    glUniform3f(get_uniform_location(name), value.x, value.y, value.z);
+    glProgramUniform3f(program_id, get_uniform_location(name), value.x, value.y, value.z);
 }
 
 void Shader::set_uniform(const std::string& name, const glm::vec4& value) {
-    glUniform4f(get_uniform_location(name), value.x, value.y, value.z, value.w);
+    glProgramUniform4f(program_id, get_uniform_location(name), value.x, value.y, value.z, value.w);
 }
 
 void Shader::set_uniform(const std::string& name, const glm::mat4& value) {
-    glUniformMatrix4fv(get_uniform_location(name), 1, GL_FALSE, glm::value_ptr(value));
+    glProgramUniformMatrix4fv(program_id, get_uniform_location(name), 1, GL_FALSE, glm::value_ptr(value));
 }
 
 } // namespace drz

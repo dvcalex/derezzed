@@ -1,7 +1,9 @@
 #pragma once
 
+#include <derezzed/renderer.hpp>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_video.h>
 
 #include <string_view>
 #include <memory>
@@ -22,14 +24,15 @@ public:
     void request_quit();
 
 private:
-    // Pointer to engine implementation (PIMPL).
-    // Let's us swap out engine impl at compile time.
-    struct Impl;
-    Impl* impl;
-    // Owning ref to app
-    std::unique_ptr<App> app = nullptr;
+    SDL_Window* window = nullptr;
+    int width = 0;
+    int height = 0;
+    const bool* keys_state = nullptr; // SDL keyboard state array. Use SDL_SCANCODE_<key> to index array.
     uint64_t last_time = 0;
     bool quit_requested = false;
+
+    std::unique_ptr<App> app;
+    std::unique_ptr<Renderer> renderer;
 };
 
 } // namespace drz

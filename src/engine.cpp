@@ -1,14 +1,11 @@
-#include <SDL3/SDL_stdinc.h>
-#include <SDL3/SDL_video.h>
-
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_video.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_main.h>
-
-#include <glad/gl.h>
 
 #include <derezzed/engine.hpp>
 #include <derezzed/app.hpp>
@@ -21,15 +18,7 @@ extern drz::App* create_app(); // user provides impl
 
 namespace drz {
 
-struct Engine::Impl {
-    SDL_Window* window = nullptr;
-    int width, height;
-    SDL_GLContext context = nullptr;
-    // SDL keyboard state array. Use SDL_SCANCODE_<key> to index array.
-    const bool* keys_state = nullptr;
-};
-
-Engine::Engine(int width, int height, std::string_view title) : impl(new Impl) {
+Engine::Engine(int initial_width, int initial_height, std::string_view title) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         throw std::runtime_error(std::string("SDL_Init: ") + SDL_GetError());
     }
@@ -41,28 +30,17 @@ Engine::Engine(int width, int height, std::string_view title) : impl(new Impl) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     std::string title_str(title);
-    impl->window = SDL_CreateWindow(title_str.c_str(), width, height, SDL_WINDOW_OPENGL);
-    if (!impl->window) {
+    window = SDL_CreateWindow(title_str.c_str(), initial_width, initial_height, SDL_WINDOW_OPENGL);
+    if (!window) {
         throw std::runtime_error(std::string("SDL_CreateWindow: ") + SDL_GetError());
     }
-    SDL_GetWindowSizeInPixels(impl->window, &impl->width, &impl->height); // just ask SDL for size after we init it
+    SDL_GetWindowSizeInPixels(window, &width, &height); // just ask SDL for size after we init it
 
-    impl->keys_state = SDL_GetKeyboardState(nullptr); // first keyboard state
+    keys_state = SDL_GetKeyboardState(nullptr); // first keyboard state
 
-    // Create OpenGL context
-    impl->context = SDL_GL_CreateContext(impl->window);
-    if (!impl->context) {
-        throw std::runtime_error(std::string("SDL_GL_CreateContext: ") + SDL_GetError());
-    }
+    // ### Init Renderer ###
 
-    // Load GLAD
-    if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
-        throw std::runtime_error("gladLoadGL failed");
-    }
-
-    // ### More OpenGL init ###
-
-    glViewport(0, 0, impl->width, impl->height); // set viewport to window size
+    renderer = std::make_unique<Renderer>(window);
 
     // ### Init App stuff ###
 
@@ -78,11 +56,10 @@ Engine::Engine(int width, int height, std::string_view title) : impl(new Impl) {
 }
 
 Engine::~Engine() {
-    app.reset();                          // Cleanup user code
-    SDL_GL_DestroyContext(impl->context); // Cleanup gl stuff
-    SDL_DestroyWindow(impl->window);      // Kill window
-    SDL_Quit();                           // Finally, kill SDL
-    delete impl;
+    app.reset();               // Free GPU resources user app allocated
+    renderer.reset();          // Free rendering context from renderer
+    SDL_DestroyWindow(window); // Kill window
+    SDL_Quit();                // Finally, kill SDL
 }
 
 void Engine::tick() {
@@ -91,9 +68,11 @@ void Engine::tick() {
     double elapsed = now_time / 1000.0;
     last_time = now_time;
 
-    app->update(dt, elapsed);
-    app->render();
-    SDL_GL_SwapWindow(impl->window); // Swap render buffers
+    app->update(dt, elapsed); // update with app's update func
+    app->render(*renderer);   // render with app's render func, pass in renderer for app to submit draw calls
+    renderer->flush();        // flush draw commands to make draw calls
+
+    SDL_GL_SwapWindow(window); // Swap render buffers
 }
 
 SDL_AppResult Engine::handle_event(const SDL_Event& event) {
@@ -101,10 +80,10 @@ SDL_AppResult Engine::handle_event(const SDL_Event& event) {
     switch (event.type) {
     case SDL_EVENT_WINDOW_RESIZED:
         int w, h;
-        SDL_GetWindowSizeInPixels(impl->window, &w, &h);
-        glViewport(0, 0, w, h);
-        impl->width = w;
-        impl->height = h;
+        SDL_GetWindowSizeInPixels(window, &w, &h);
+        renderer->set_viewport(w, h); // update viewport to match new window size
+        width = w;
+        height = h;
         break;
 
     default:
@@ -126,11 +105,11 @@ SDL_AppResult Engine::handle_event(const SDL_Event& event) {
 }
 
 void Engine::set_title(std::string_view title) {
-    SDL_SetWindowTitle(impl->window, std::string(title).c_str());
+    SDL_SetWindowTitle(window, std::string(title).c_str());
 }
 
 std::pair<int, int> Engine::framebuffer_size() const {
-    return {impl->width, impl->height};
+    return {width, height};
 }
 
 void Engine::request_quit() {
