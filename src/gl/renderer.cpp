@@ -3,6 +3,7 @@
 #include <SDL3/SDL_video.h>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
 
 namespace drz {
 
@@ -42,10 +43,30 @@ void Renderer::submit(DrawCommand cmd) {
 }
 
 void Renderer::flush() {
+    // Sort commands by shader and vertex layout to minimize state changes (binds)
+    std::sort(draw_commands.begin(), draw_commands.end(), [](const DrawCommand& a, const DrawCommand& b) {
+        if (a.shader != b.shader) {
+            return a.shader < b.shader;
+        }
+        return a.vertex_layout < b.vertex_layout;
+    });
+
+    // Track current state
+    uint32_t current_shader = 0;
+    uint32_t current_vertex_layout = 0;
+
     // Iterate over handles and make draw calls
     for (const auto& cmd : draw_commands) {
-        glUseProgram(cmd.shader);
-        glBindVertexArray(cmd.vertex_layout);
+        // Check if shader needs to be rebinded
+        if (cmd.shader != current_shader) {
+            glUseProgram(cmd.shader);
+            current_shader = cmd.shader;
+        }
+        // Check if vao needs to be rebinded
+        if (cmd.vertex_layout != current_vertex_layout) {
+            glBindVertexArray(cmd.vertex_layout);
+            current_vertex_layout = cmd.vertex_layout;
+        }
         if (cmd.index_count > 0) {
             glDrawElements(GL_TRIANGLES, cmd.index_count, GL_UNSIGNED_INT, nullptr);
         } else {
