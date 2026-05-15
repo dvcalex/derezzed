@@ -1,9 +1,92 @@
 #include <drz/gfx/renderer.hpp>
+#include <drz/util/logger.hpp>
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
 #include <stdexcept>
 #include <string>
 #include <algorithm>
+
+namespace {
+
+const char* gl_debug_source_str(GLenum source) {
+    switch (source) {
+    case GL_DEBUG_SOURCE_API:
+        return "API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        return "WINDOW";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        return "SHADER";
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        return "THIRD_PARTY";
+    case GL_DEBUG_SOURCE_APPLICATION:
+        return "APP";
+    case GL_DEBUG_SOURCE_OTHER:
+        return "OTHER";
+    default:
+        return "?";
+    }
+}
+
+const char* gl_debug_type_str(GLenum type) {
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+        return "ERROR";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        return "DEPRECATED";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        return "UB";
+    case GL_DEBUG_TYPE_PORTABILITY:
+        return "PORTABILITY";
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        return "PERF";
+    case GL_DEBUG_TYPE_MARKER:
+        return "MARKER";
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        return "PUSH";
+    case GL_DEBUG_TYPE_POP_GROUP:
+        return "POP";
+    case GL_DEBUG_TYPE_OTHER:
+        return "OTHER";
+    default:
+        return "?";
+    }
+}
+
+void GLAPIENTRY gl_debug_message(
+    GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/) {
+    // Filter out NOTIFICATION logs
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+        return;
+    }
+
+    const char* sev = "?";
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_HIGH:
+        sev = "HIGH";
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        sev = "MED";
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        sev = "LOW";
+        break;
+    default:
+        break;
+    }
+
+    DRZ_LOGF("[GL][{}][{}][{}] id={} {}", sev, gl_debug_source_str(source), gl_debug_type_str(type), id, message);
+    DRZ_FLUSH_LOG();
+
+#ifndef NDEBUG
+    // Trap on HIGH severity errors so debugger stops on the bad GL call in the stack frame.
+    // Outside of a debugger, the program will exit.
+    if (severity == GL_DEBUG_SEVERITY_HIGH) {
+        __builtin_trap();
+    }
+#endif
+}
+
+} // anonymous namespace
 
 namespace drz {
 
@@ -12,6 +95,9 @@ void Renderer::configure_window_attributes() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#ifndef NDEBUG
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
 }
 
 SDL_WindowFlags Renderer::window_flags() {
@@ -28,6 +114,18 @@ Renderer::Renderer(SDL_Window* window) {
     if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
         throw std::runtime_error("gladLoadGL failed");
     }
+
+    // enable debug callback if we got a debug context
+    GLint flags = 0;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(&gl_debug_message, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+
+    glEnable(GL_DEPTH_TEST + 99999);
 
     // Set initial viewport in pixel size
     int w = 0;
