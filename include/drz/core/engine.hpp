@@ -27,6 +27,7 @@ private:
     SDL_Window* window = nullptr;
     int width = 0;
     int height = 0;
+    uint64_t last_stats_log_ms = 0;
     const bool* keys_state = nullptr; // SDL keyboard state array. Use SDL_SCANCODE_<key> to index array.
     uint64_t last_time = 0;
     bool quit_requested = false;

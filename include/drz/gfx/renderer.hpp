@@ -6,6 +6,14 @@
 
 namespace drz {
 
+struct FrameStats {
+    uint32_t submits = 0;    // total draw commands submitted this frame
+    uint32_t draw_calls = 0; // actual glDraws issues
+    uint32_t shader_binds = 0;
+    uint32_t vertex_layout_binds = 0;
+    float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
+};
+
 struct DrawCommand {
     uint32_t shader;
     uint32_t vertex_layout;
@@ -31,13 +39,14 @@ public:
     void flush();                             // Flush current draw commands buffer and make draw calls
     void set_viewport(int width, int height); // called by Engine on window resize
     void clear(float r, float g, float b, float a);
+    void reset_frame_stats();
+    const FrameStats last_frame_stats() const {
+        return frame_stats;
+    }
 
 private:
     SDL_GLContext context = nullptr;
     std::vector<DrawCommand> draw_commands;
-
-    // uint32_t last_shader_binds = 0;
-    // uint32_t last_vertex_layout_binds = 0;
-    // uint32_t last_draws = 0;
+    FrameStats frame_stats;
 };
 } // namespace drz

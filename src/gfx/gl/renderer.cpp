@@ -2,6 +2,8 @@
 #include <drz/util/logger.hpp>
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
+#include <SDL3/SDL_opengl.h>
+#include <SDL3/SDL_timer.h>
 #include <stdexcept>
 #include <string>
 #include <algorithm>
@@ -125,8 +127,6 @@ Renderer::Renderer(SDL_Window* window) {
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
 
-    glEnable(GL_DEPTH_TEST + 99999);
-
     // Set initial viewport in pixel size
     int w = 0;
     int h = 0;
@@ -152,6 +152,9 @@ void Renderer::submit(DrawCommand cmd) {
 }
 
 void Renderer::flush() {
+    frame_stats.submits += draw_commands.size(); // count submits at entry
+    uint64_t start = SDL_GetPerformanceCounter();
+
     // Sort commands by shader and vertex layout to minimize state changes (binds)
     std::sort(draw_commands.begin(), draw_commands.end(), [](const DrawCommand& a, const DrawCommand& b) {
         if (a.shader != b.shader) {
@@ -169,11 +172,13 @@ void Renderer::flush() {
         // Check if shader needs to be rebinded
         if (cmd.shader != current_shader) {
             glUseProgram(cmd.shader);
+            ++frame_stats.shader_binds;
             current_shader = cmd.shader;
         }
         // Check if vao needs to be rebinded
         if (cmd.vertex_layout != current_vertex_layout) {
             glBindVertexArray(cmd.vertex_layout);
+            ++frame_stats.vertex_layout_binds;
             current_vertex_layout = cmd.vertex_layout;
         }
         if (cmd.index_count > 0) {
@@ -181,8 +186,16 @@ void Renderer::flush() {
         } else {
             glDrawArrays(GL_TRIANGLES, 0, cmd.vertex_count);
         }
+        ++frame_stats.draw_calls;
     }
     draw_commands.clear(); // clear buffer after flushing
+
+    uint64_t end = SDL_GetPerformanceCounter();
+    double freq = (double)SDL_GetPerformanceFrequency();
+    frame_stats.cpu_flush_ms += static_cast<float>((end - start) * 1000.0 / freq);
 }
 
+void Renderer::reset_frame_stats() {
+    frame_stats = {};
+}
 } // namespace drz

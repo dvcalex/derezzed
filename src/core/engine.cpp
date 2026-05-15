@@ -9,6 +9,7 @@
 
 #include <drz/core/engine.hpp>
 #include <drz/core/app.hpp>
+#include <drz/util/logger.hpp>
 
 #include <stdexcept>
 #include <string>
@@ -60,6 +61,8 @@ Engine::~Engine() {
 }
 
 void Engine::tick() {
+    renderer->reset_frame_stats();
+
     uint64_t now_time = SDL_GetTicks();          // returns current time in ms
     float dt = (now_time - last_time) / 1000.0f; // get delta, then convert to seconds
     double elapsed = now_time / 1000.0;
@@ -68,6 +71,19 @@ void Engine::tick() {
     app->update(dt, elapsed); // update with app's update func
     app->render(*renderer);   // render with app's render func, pass in renderer for app to submit draw calls
     renderer->flush();        // flush draw commands to make draw calls
+
+    uint64_t now_ms = SDL_GetTicks();
+    if (now_ms - last_stats_log_ms >= 250) {
+        const auto& s = renderer->last_frame_stats();
+        DRZ_LOGF("[stats] submits={} draws={} prog_binds={} vao_binds={} cpu={:.2f}ms",
+                 s.submits,
+                 s.draw_calls,
+                 s.shader_binds,
+                 s.vertex_layout_binds,
+                 s.cpu_flush_ms);
+        DRZ_FLUSH_LOG();
+        last_stats_log_ms = now_ms;
+    }
 
     SDL_GL_SwapWindow(window); // Swap render buffers
 }
