@@ -60,6 +60,30 @@ if(DRZ_BACKEND_GL)
   target_compile_definitions(${PROJECT_NAME} PUBLIC DRZ_BACKEND_GL)
 endif()
 
+# Copies <caller_dir>/res next to the built target. Re-runs whenever any file under
+# res/ changes; CONFIGURE_DEPENDS makes CMake re-glob to catch added/removed files.
+function(drz_copy_res target)
+    set(res_dir "${CMAKE_CURRENT_SOURCE_DIR}/res")
+    if(NOT IS_DIRECTORY ${res_dir})
+        return()
+    endif()
+
+    file(GLOB_RECURSE res_files CONFIGURE_DEPENDS "${res_dir}/*")
+    set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}_res.stamp")
+
+    add_custom_command(
+        OUTPUT ${stamp}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${res_dir} "$<TARGET_FILE_DIR:${target}>/res"
+        COMMAND ${CMAKE_COMMAND} -E touch ${stamp}
+        DEPENDS ${res_files}
+        COMMENT "Copying ${target} res/"
+        VERBATIM
+    )
+
+    add_custom_target(${target}_res DEPENDS ${stamp})
+    add_dependencies(${target} ${target}_res)
+endfunction()
+
 add_subdirectory(demo/hello)
 add_subdirectory(demo/matrix-rain)
 add_subdirectory(demo/stress)

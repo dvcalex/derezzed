@@ -2,9 +2,4 @@ add_executable(stress main.cpp)
 
 target_link_libraries(stress PRIVATE drz SDL3::SDL3 OpenGL::GL)
 
-# Copy shaders to build output
-add_custom_command(TARGET stress POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/res
-        $<TARGET_FILE_DIR:stress>/res
-)
+drz_copy_res(stress)

@@ -1,13 +1,22 @@
 #version 460 core
-layout(location = 0) in vec3 a_pos;
-layout(location = 2) in vec2 a_uv;
 
-uniform vec2  u_offset;
-uniform float u_scale;
+layout(location = 0) in vec3 in_pos;
+layout(location = 2) in vec2 in_uv;
 
 out vec2 v_uv;
 
+struct PerDraw {
+    vec2 offset;
+    float scale;
+    float _pad;
+    vec4 tint;
+};
+layout(std430, binding = 0) readonly buffer Draws {
+    PerDraw draws[];
+};
+
 void main() {
-    v_uv = a_uv;
-    gl_Position = vec4(a_pos.xy * u_scale + u_offset, 0.0, 1.0);
+    PerDraw d = draws[0];
+    gl_Position = vec4(in_pos.xy * d.scale + d.offset, 0.0, 1.0);
+    v_uv = in_uv;
 }

@@ -20,6 +20,15 @@ static std::string res_path(const std::string& relative) {
 
 class StressApp : public drz::App {
 private:
+    struct PerDraw {
+        glm::vec2 offset;
+        float scale;
+        float _pad;
+        glm::vec4 tint;
+    };
+    static_assert(sizeof(PerDraw) == 32);
+    static_assert(offsetof(PerDraw, tint) == 16);
+
     static constexpr size_t quad_count = 5000;
 
     std::optional<drz::QuadMesh> quad;
@@ -46,7 +55,7 @@ public:
         // Deterministic scene rng so numbers compare across runs.
         std::mt19937 rng(0xC0FFEEu);
         std::uniform_real_distribution<float> pos(-0.95f, 0.95f);
-        std::uniform_real_distribution<float> scl(0.01f, 0.04f);
+        std::uniform_real_distribution<float> scl(0.015f, 0.05f);
         std::uniform_real_distribution<float> tint(0.2f, 1.0f);
         std::uniform_int_distribution<uint32_t> si(0, static_cast<uint32_t>(shaders.size()) - 1);
 
@@ -79,24 +88,22 @@ public:
 
         renderer.clear(0.05f, 0.05f, 0.08f, 1.0f);
 
-        shaders[0].set_uniform("u_offset", glm::vec2(-0.5f, 0.0f));
-        shaders[0].set_uniform("u_scale", 0.3f);
-        shaders[0].set_uniform("u_tint", glm::vec4(0.9f, 0.3f, 0.3f, 1.0f));
-
-        shaders[1].set_uniform("u_offset", glm::vec2(0.0f, 0.0f));
-        shaders[1].set_uniform("u_scale", 0.3f);
-        shaders[1].set_uniform("u_tint", glm::vec4(0.3f, 0.9f, 0.3f, 1.0f));
-
-        shaders[2].set_uniform("u_offset", glm::vec2(0.5f, 0.0f));
-        shaders[2].set_uniform("u_scale", 0.3f);
-        shaders[2].set_uniform("u_tint", glm::vec4(0.3f, 0.6f, 0.9f, 1.0f));
-
         for (size_t i = 0; i < quad_count; ++i) {
             drz::PipelineStateId pid = pipelines[shader_idx[i]];
+
+            auto [offset, bytes] = renderer.push_draw_data(PerDraw {
+                .offset = offsets[i],
+                .scale = scales[i],
+                ._pad = 0.0f,
+                .tint = tints[i],
+            });
+
             renderer.submit(drz::gen_sort_key(0, pid),
                             {
                                 .state_id = pid,
                                 .index_count = quad->index_count(),
+                                .draw_data_offset = offset,
+                                .draw_data_bytes = bytes,
                             });
         }
         renderer.flush();
