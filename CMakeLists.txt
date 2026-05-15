@@ -61,3 +61,4 @@ endif()
 
 add_subdirectory(demo/hello)
 add_subdirectory(demo/matrix-rain)
+add_subdirectory(demo/stress)
