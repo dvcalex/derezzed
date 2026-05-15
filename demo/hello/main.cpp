@@ -34,20 +34,30 @@ public:
     void update(float dt, double elapsed) override {}
 
     void render(drz::Renderer& renderer) override {
+        if (!registered) {
+            pipeline = renderer.register_state({
+                .shader = shader->handle(),
+                .vertex_layout = mesh->vertex_layout_handle(),
+            });
+            registered = true;
+        }
+
         renderer.clear(0.1f, 0.1f, 0.1f, 1.0f);
-        drz::DrawCommand cmd {
-            .shader = shader->handle(),
-            .vertex_layout = mesh->vertex_layout_handle(),
-            .index_count = mesh->index_count(),
-            .vertex_count = mesh->vertex_count(),
-        };
-        renderer.submit(cmd);
+        renderer.submit(drz::gen_sort_key(0, pipeline),
+                        {
+                            .state_id = pipeline,
+                            .index_count = mesh->index_count(),
+                        });
+        renderer.flush();
     }
 
 private:
     // Optionals for stack allocation and late init inside of init()
     std::optional<drz::Mesh> mesh;
     std::optional<drz::Shader> shader;
+
+    bool registered = false;
+    drz::PipelineStateId pipeline = 0;
 };
 
 drz::App* create_app() {

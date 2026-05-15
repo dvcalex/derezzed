@@ -1,3 +1,4 @@
+#include <chrono>
 #include <drz/gfx/renderer.hpp>
 #include <drz/util/logger.hpp>
 #include <glad/gl.h>
@@ -6,7 +7,9 @@
 #include <SDL3/SDL_timer.h>
 #include <stdexcept>
 #include <string>
-#include <algorithm>
+#include <vector>
+#include <numeric>
+#include <cstdint>
 
 namespace {
 
@@ -138,6 +141,65 @@ Renderer::~Renderer() {
     SDL_GL_DestroyContext(context);
 }
 
+PipelineStateId Renderer::register_state(const PipelineState& state_to_register) {
+    for (size_t i = 0; i < states.size(); ++i) {
+        // if state is already registered, return
+        if (states[i].shader == state_to_register.shader && states[i].vertex_layout == state_to_register.vertex_layout) {
+            return static_cast<PipelineStateId>(i);
+        }
+    }
+    // add state and return
+    states.push_back(state_to_register);
+    return static_cast<PipelineStateId>(states.size() - 1);
+}
+
+void Renderer::submit(SortKey key, const DrawPacket& packet) {
+    // append draw packet and sort key
+    sort_keys.push_back(key);                                    // add draw's sort key
+    draw_indices.push_back(static_cast<uint32_t>(draws.size())); // index is at end of current draws vector
+    draws.push_back(packet);                                     // now add actual packet
+    ++frame_stats.submits;
+}
+
+void Renderer::flush() {
+    // Sorts, then iterates while tracking state
+    auto t0 = std::chrono::steady_clock::now(); // starting time
+
+    // Sort the (key, draw index) pairs by key.
+    // Build index permutation sorted by keys.
+    perm.resize(sort_keys.size());
+    std::iota(perm.begin(), perm.end(), 0u); // fill with 0,1,2,...n
+    std::sort(perm.begin(), perm.end(), [&](uint32_t a, uint32_t b) { return sort_keys[a] < sort_keys[b]; });
+
+    uint32_t cur_shader = 0;
+    uint32_t cur_vertex_layout = 0;
+
+    for (uint32_t i : perm) {
+        const DrawPacket& packet = draws[draw_indices[i]];       // get draw packet in its sorted order
+        const PipelineState& pipeline = states[packet.state_id]; // get render state for this draw
+
+        if (pipeline.shader != cur_shader) {
+            glUseProgram(pipeline.shader);
+            cur_shader = pipeline.shader;
+            ++frame_stats.shader_binds;
+        }
+        if (pipeline.vertex_layout != cur_vertex_layout) {
+            glBindVertexArray(pipeline.vertex_layout);
+            cur_vertex_layout = pipeline.vertex_layout;
+            ++frame_stats.vertex_layout_binds;
+        }
+        glDrawElements(GL_TRIANGLES, packet.index_count, GL_UNSIGNED_INT, nullptr);
+        ++frame_stats.draw_calls;
+    }
+
+    sort_keys.clear();
+    draw_indices.clear();
+    draws.clear();
+
+    auto t1 = std::chrono::steady_clock::now(); // ending time
+    frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
+}
+
 void Renderer::set_viewport(int width, int height) {
     glViewport(0, 0, width, height);
 }
@@ -145,57 +207,5 @@ void Renderer::set_viewport(int width, int height) {
 void Renderer::clear(float r, float g, float b, float a) {
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void Renderer::submit(DrawCommand cmd) {
-    draw_commands.push_back(cmd);
-}
-
-void Renderer::flush() {
-    frame_stats.submits += draw_commands.size(); // count submits at entry
-    uint64_t start = SDL_GetPerformanceCounter();
-
-    // Sort commands by shader and vertex layout to minimize state changes (binds)
-    std::sort(draw_commands.begin(), draw_commands.end(), [](const DrawCommand& a, const DrawCommand& b) {
-        if (a.shader != b.shader) {
-            return a.shader < b.shader;
-        }
-        return a.vertex_layout < b.vertex_layout;
-    });
-
-    // Track current state
-    uint32_t current_shader = 0;
-    uint32_t current_vertex_layout = 0;
-
-    // Iterate over handles and make draw calls
-    for (const auto& cmd : draw_commands) {
-        // Check if shader needs to be rebinded
-        if (cmd.shader != current_shader) {
-            glUseProgram(cmd.shader);
-            ++frame_stats.shader_binds;
-            current_shader = cmd.shader;
-        }
-        // Check if vao needs to be rebinded
-        if (cmd.vertex_layout != current_vertex_layout) {
-            glBindVertexArray(cmd.vertex_layout);
-            ++frame_stats.vertex_layout_binds;
-            current_vertex_layout = cmd.vertex_layout;
-        }
-        if (cmd.index_count > 0) {
-            glDrawElements(GL_TRIANGLES, cmd.index_count, GL_UNSIGNED_INT, nullptr);
-        } else {
-            glDrawArrays(GL_TRIANGLES, 0, cmd.vertex_count);
-        }
-        ++frame_stats.draw_calls;
-    }
-    draw_commands.clear(); // clear buffer after flushing
-
-    uint64_t end = SDL_GetPerformanceCounter();
-    double freq = (double)SDL_GetPerformanceFrequency();
-    frame_stats.cpu_flush_ms += static_cast<float>((end - start) * 1000.0 / freq);
-}
-
-void Renderer::reset_frame_stats() {
-    frame_stats = {};
 }
 } // namespace drz

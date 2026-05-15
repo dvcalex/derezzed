@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 
+#include <array>
 #include <optional>
 #include <random>
 #include <string>
@@ -17,7 +18,6 @@ static std::string res_path(const std::string& relative) {
     return std::string(base) + "res/" + relative;
 }
 
-// N small quads scattered in NDC, each with its own offset/scale/tint, using one of 3 shaders. Submits + flushes per quad.
 class StressApp : public drz::App {
 private:
     static constexpr size_t quad_count = 5000;
@@ -25,6 +25,10 @@ private:
     std::optional<drz::QuadMesh> quad;
     std::vector<drz::Shader> shaders;
 
+    bool registered = false;
+    std::array<drz::PipelineStateId, 3> pipelines {};
+
+    // SoA per-quad data
     std::vector<glm::vec2> offsets;
     std::vector<float> scales;
     std::vector<glm::vec4> tints;
@@ -63,20 +67,39 @@ public:
     void update(float, double) override {}
 
     void render(drz::Renderer& renderer) override {
-        renderer.clear(0.05f, 0.05f, 0.08f, 1.0f);
-        for (size_t i = 0; i < quad_count; ++i) {
-            auto& sh = shaders[shader_idx[i]];
-            sh.set_uniform("u_offset", offsets[i]);
-            sh.set_uniform("u_scale", scales[i]);
-            sh.set_uniform("u_tint", tints[i]);
-            renderer.submit({
-                .shader = sh.handle(),
-                .vertex_layout = quad->vertex_layout_handle(),
-                .index_count = quad->index_count(),
-                .vertex_count = quad->vertex_count(),
-            });
-            renderer.flush();
+        if (!registered) {
+            for (size_t s = 0; s < shaders.size(); ++s) {
+                pipelines[s] = renderer.register_state({
+                    .shader = shaders[s].handle(),
+                    .vertex_layout = quad->vertex_layout_handle(),
+                });
+            }
+            registered = true;
         }
+
+        renderer.clear(0.05f, 0.05f, 0.08f, 1.0f);
+
+        shaders[0].set_uniform("u_offset", glm::vec2(-0.5f, 0.0f));
+        shaders[0].set_uniform("u_scale", 0.3f);
+        shaders[0].set_uniform("u_tint", glm::vec4(0.9f, 0.3f, 0.3f, 1.0f));
+
+        shaders[1].set_uniform("u_offset", glm::vec2(0.0f, 0.0f));
+        shaders[1].set_uniform("u_scale", 0.3f);
+        shaders[1].set_uniform("u_tint", glm::vec4(0.3f, 0.9f, 0.3f, 1.0f));
+
+        shaders[2].set_uniform("u_offset", glm::vec2(0.5f, 0.0f));
+        shaders[2].set_uniform("u_scale", 0.3f);
+        shaders[2].set_uniform("u_tint", glm::vec4(0.3f, 0.6f, 0.9f, 1.0f));
+
+        for (size_t i = 0; i < quad_count; ++i) {
+            drz::PipelineStateId pid = pipelines[shader_idx[i]];
+            renderer.submit(drz::gen_sort_key(0, pid),
+                            {
+                                .state_id = pid,
+                                .index_count = quad->index_count(),
+                            });
+        }
+        renderer.flush();
     }
 };
 

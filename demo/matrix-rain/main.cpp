@@ -29,25 +29,35 @@ public:
     }
 
     void render(drz::Renderer& renderer) override {
+        if (!registered) {
+            pipeline = renderer.register_state({
+                .shader = shader->handle(),
+                .vertex_layout = quad->vertex_layout_handle(),
+            });
+            registered = true;
+        }
+
         renderer.clear(0.0f, 0.0f, 0.0f, 1.0f);
 
         auto [w, h] = engine->framebuffer_size();
         shader->set_uniform("u_time", time);
         shader->set_uniform("u_resolution", glm::vec2(static_cast<float>(w), static_cast<float>(h)));
 
-        drz::DrawCommand cmd {
-            .shader = shader->handle(),
-            .vertex_layout = quad->vertex_layout_handle(),
-            .index_count = quad->index_count(),
-            .vertex_count = quad->vertex_count(),
-        };
-        renderer.submit(cmd);
+        renderer.submit(drz::gen_sort_key(0, pipeline),
+                        {
+                            .state_id = pipeline,
+                            .index_count = quad->index_count(),
+                        });
+        renderer.flush();
     }
 
 private:
     std::optional<drz::FullscreenQuadMesh> quad;
     std::optional<drz::Shader> shader;
     float time = 0.0f;
+
+    bool registered = false;
+    drz::PipelineStateId pipeline = 0;
 };
 
 drz::App* create_app() {

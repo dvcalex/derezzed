@@ -14,12 +14,25 @@ struct FrameStats {
     float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
 };
 
-struct DrawCommand {
-    uint32_t shader;
-    uint32_t vertex_layout;
-    uint32_t index_count;
-    uint32_t vertex_count;
+using PipelineStateId = uint32_t;
+using SortKey = uint64_t;
+
+struct PipelineState {
+    uint32_t shader = 0;
+    uint32_t vertex_layout = 0;
+    // TODO: blend, depth test, cull, stencil, scissor
 };
+
+struct DrawPacket {
+    PipelineStateId state_id = 0;
+    // uint32_t vertex_count = 0;
+    uint32_t index_count = 0;
+    // TODO: instance count, base vertex, base instance, ssbo offset
+};
+
+inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth = 0) {
+    return (uint64_t(pass) << 56) | ((uint64_t(state) & 0xFFFFFFull) << 32) | uint64_t(depth);
+}
 
 class Renderer {
 public:
@@ -35,18 +48,28 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void submit(DrawCommand cmd);             // Add a command to the draw commands buffer
+    PipelineStateId register_state(const PipelineState& state);
+    void submit(SortKey key, const DrawPacket& packet);
     void flush();                             // Flush current draw commands buffer and make draw calls
     void set_viewport(int width, int height); // called by Engine on window resize
     void clear(float r, float g, float b, float a);
-    void reset_frame_stats();
-    const FrameStats last_frame_stats() const {
+    void reset_frame_stats() {
+        frame_stats = {};
+    }
+    const FrameStats& last_frame_stats() const {
         return frame_stats;
     }
 
 private:
     SDL_GLContext context = nullptr;
-    std::vector<DrawCommand> draw_commands;
     FrameStats frame_stats;
+
+    std::vector<PipelineState> states; // states, index is PipelineStateId
+
+    // per-frame queues cleared in flush()
+    std::vector<SortKey> sort_keys;     // hot path. 8 bytes each
+    std::vector<uint32_t> perm;         // hot path. 4 bytes each. permutation of draw_indices sorted by sort_keys
+    std::vector<uint32_t> draw_indices; // index into draws
+    std::vector<DrawPacket> draws;      // cold path. actual draw data
 };
 } // namespace drz
