@@ -29,10 +29,11 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC
     src/core/engine.cpp
+    src/util/logger.cpp
     src/gfx/gl/shader.cpp
     src/gfx/gl/mesh.cpp
     src/gfx/gl/renderer.cpp
-    src/util/logger.cpp
+    src/gfx/gl/frame_ring_buffer.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

@@ -3,7 +3,7 @@ BasedOnStyle: LLVM
 
 # Rust uses K&R style: opening braces attached, else/catch on same line as closing brace
 BreakBeforeBraces: Attach
-ColumnLimit: 135
+ColumnLimit: 120
 PointerAlignment: Left
 ReferenceAlignment: Left
 SortIncludes: Never

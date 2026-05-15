@@ -1,15 +1,18 @@
 #include <chrono>
 #include <drz/gfx/renderer.hpp>
 #include <drz/util/logger.hpp>
+#include "frame_ring_buffer.hpp"
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_timer.h>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <numeric>
 #include <cstdint>
+#include <algorithm>
 
 namespace {
 
@@ -57,8 +60,13 @@ const char* gl_debug_type_str(GLenum type) {
     }
 }
 
-void GLAPIENTRY gl_debug_message(
-    GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/) {
+void GLAPIENTRY gl_debug_message(GLenum source,
+                                 GLenum type,
+                                 GLuint id,
+                                 GLenum severity,
+                                 GLsizei /*length*/,
+                                 const GLchar* message,
+                                 const void* /*userParam*/) {
     // Filter out NOTIFICATION logs
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
         return;
@@ -135,6 +143,14 @@ Renderer::Renderer(SDL_Window* window) {
     int h = 0;
     SDL_GetWindowSizeInPixels(window, &w, &h);
     glViewport(0, 0, w, h); // set viewport to window size
+
+    // Query ssbo alignment
+    GLint ssbo_align = 0;
+    glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &ssbo_align);
+
+    // Build frame ring buffer
+    constexpr size_t REGION_BYTES = 2 * 1024 * 1024; // 2 MB per-frame of draw data
+    frame_ring_buffer = std::make_unique<FrameRingBuffer>(REGION_BYTES, static_cast<size_t>(ssbo_align));
 }
 
 Renderer::~Renderer() {
@@ -144,13 +160,19 @@ Renderer::~Renderer() {
 PipelineStateId Renderer::register_state(const PipelineState& state_to_register) {
     for (size_t i = 0; i < states.size(); ++i) {
         // if state is already registered, return
-        if (states[i].shader == state_to_register.shader && states[i].vertex_layout == state_to_register.vertex_layout) {
+        if (states[i].shader == state_to_register.shader &&
+            states[i].vertex_layout == state_to_register.vertex_layout) {
             return static_cast<PipelineStateId>(i);
         }
     }
     // add state and return
     states.push_back(state_to_register);
     return static_cast<PipelineStateId>(states.size() - 1);
+}
+
+DrawDataSlot Renderer::allocate_draw_data(uint32_t bytes, uint32_t align) {
+    auto slot = frame_ring_buffer->allocate(bytes, align);
+    return {slot.ptr, slot.offset, slot.bytes};
 }
 
 void Renderer::submit(SortKey key, const DrawPacket& packet) {
@@ -188,6 +210,14 @@ void Renderer::flush() {
             cur_vertex_layout = pipeline.vertex_layout;
             ++frame_stats.vertex_layout_binds;
         }
+        if (packet.draw_data_bytes > 0) {
+            glBindBufferRange(GL_SHADER_STORAGE_BUFFER,
+                              0,
+                              frame_ring_buffer->handle(),
+                              packet.draw_data_offset,
+                              packet.draw_data_bytes);
+            ++frame_stats.ssbo_binds;
+        }
         glDrawElements(GL_TRIANGLES, packet.index_count, GL_UNSIGNED_INT, nullptr);
         ++frame_stats.draw_calls;
     }
@@ -195,6 +225,8 @@ void Renderer::flush() {
     sort_keys.clear();
     draw_indices.clear();
     draws.clear();
+
+    frame_ring_buffer->next_frame(); // rotate to next frame's region and reset it
 
     auto t1 = std::chrono::steady_clock::now(); // ending time
     frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();

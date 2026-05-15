@@ -3,6 +3,9 @@
 #include <SDL3/SDL_video.h>
 #include <vector>
 #include <cstdint>
+#include <utility>
+#include <cstring>
+#include <memory>
 
 namespace drz {
 
@@ -11,7 +14,16 @@ struct FrameStats {
     uint32_t draw_calls = 0; // actual glDraws issues
     uint32_t shader_binds = 0;
     uint32_t vertex_layout_binds = 0;
+    uint32_t ssbo_binds = 0;
     float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
+};
+
+class FrameRingBuffer; // forward-decl. full type lives in src/gfx/gl/
+
+struct DrawDataSlot {
+    void* ptr;
+    uint32_t offset;
+    uint32_t bytes;
 };
 
 using PipelineStateId = uint32_t;
@@ -25,8 +37,9 @@ struct PipelineState {
 
 struct DrawPacket {
     PipelineStateId state_id = 0;
-    // uint32_t vertex_count = 0;
     uint32_t index_count = 0;
+    uint32_t draw_data_offset = 0; // byte offset into per-frame SSBO ring buffer
+    uint32_t draw_data_bytes = 0;  // 0 == this draw doesn't use per-draw data
     // TODO: instance count, base vertex, base instance, ssbo offset
 };
 
@@ -49,6 +62,12 @@ public:
     Renderer& operator=(const Renderer&) = delete;
 
     PipelineStateId register_state(const PipelineState& state);
+    DrawDataSlot allocate_draw_data(uint32_t bytes, uint32_t align);
+    template <typename T> std::pair<uint32_t, uint32_t> push_draw_data(const T& data) {
+        auto slot = allocate_draw_data(sizeof(T), alignof(T));
+        std::memcpy(slot.ptr, &data, sizeof(T));
+        return {slot.offset, slot.bytes};
+    }
     void submit(SortKey key, const DrawPacket& packet);
     void flush();                             // Flush current draw commands buffer and make draw calls
     void set_viewport(int width, int height); // called by Engine on window resize
@@ -65,6 +84,8 @@ private:
     FrameStats frame_stats;
 
     std::vector<PipelineState> states; // states, index is PipelineStateId
+
+    std::unique_ptr<FrameRingBuffer> frame_ring_buffer; // manages per-frame SSBO for draw data
 
     // per-frame queues cleared in flush()
     std::vector<SortKey> sort_keys;     // hot path. 8 bytes each

@@ -75,11 +75,12 @@ void Engine::tick() {
     uint64_t now_ms = SDL_GetTicks();
     if (now_ms - last_stats_log_ms >= 250) {
         const auto& s = renderer->last_frame_stats();
-        DRZ_LOGF("[stats] submits={} draws={} prog_binds={} vao_binds={} cpu={:.2f}ms",
+        DRZ_LOGF("[stats] submits={} draws={} prog_binds={} vertex_layout_binds={} ssbo_binds={} cpu={:.2f}ms",
                  s.submits,
                  s.draw_calls,
                  s.shader_binds,
                  s.vertex_layout_binds,
+                 s.ssbo_binds,
                  s.cpu_flush_ms);
         DRZ_FLUSH_LOG();
         last_stats_log_ms = now_ms;
