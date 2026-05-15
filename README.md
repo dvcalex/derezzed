@@ -6,8 +6,8 @@ WIP toy graphics engine
     - Engine builds as static library
     - each app has its own CMakeLists.txt that links against the engine
 - SDL3 for windowing, input, media, etc.
-- Swappable (at compile time) rendering backend
-    - OpenGL
+- Engine/header api-agnostic interfaces
+  - OpenGL backend (can add more with some work)
 - DOD focus (WIP)
 - Demos
 
@@ -15,40 +15,10 @@ WIP toy graphics engine
 
 Required:
 
-- **CMake** (3.21+)
+- **CMake** 3.21+
 - **A C++20 compiler**
-- **OpenGL** (driver / dev headers)
+- **OpenGL** driver and dev headers (should already be available)
 - **SDL3** (CMake will fetch for you if it can't find it in system)
-
-### Arch
-
-```bash
-sudo pacman -S cmake gcc sdl3 mesa
-```
-
-### Debian / Ubuntu
-
-```bash
-sudo apt install cmake build-essential libgl-dev
-# libsdl3-dev where available; otherwise CMake will fetch SDL3 on first configure
-```
-
-### Fedora
-
-```bash
-sudo dnf install cmake gcc-c++ mesa-libGL-devel
-# SDL3-devel where available; otherwise CMake will fetch SDL3 on first configure
-```
-
-### macOS
-
-```bash
-brew install cmake sdl3
-```
-
-### Windows
-
-TODO
 
 ## Build
 
@@ -70,7 +40,7 @@ Output goes to `build/debug/bin/` or `build/release/bin/`.
 
 ## Demos
 
-Live in the `demo/` folder, build and run like above.
+Live in the `demo/` folder, build and run like above. Use these for testing and for reference on how to build apps.
 
 ## Writing an App
 
