@@ -15,6 +15,11 @@ struct DrawCommand {
 
 class Renderer {
 public:
+    // For implementing graphics api-specific setup called by Engine before window creation.
+    // ex. Lets the renderer configure SDL/GL attributes in backend.
+    static void configure_window_attributes();
+    static SDL_WindowFlags window_flags();
+
     Renderer(SDL_Window* window);
     ~Renderer();
 

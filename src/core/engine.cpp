@@ -23,14 +23,11 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title) {
         throw std::runtime_error(std::string("SDL_Init: ") + SDL_GetError());
     }
 
-    /// ### Init SDL and OpenGL stuff ###
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    // Let the renderer backend configure SDL attributes before window creation.
+    Renderer::configure_window_attributes();
 
     std::string title_str(title);
-    window = SDL_CreateWindow(title_str.c_str(), initial_width, initial_height, SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow(title_str.c_str(), initial_width, initial_height, Renderer::window_flags());
     if (!window) {
         throw std::runtime_error(std::string("SDL_CreateWindow: ") + SDL_GetError());
     }
