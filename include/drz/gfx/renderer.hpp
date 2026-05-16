@@ -1,5 +1,6 @@
 #pragma once
 
+#include <drz/gfx/mesh_pool.hpp>
 #include <SDL3/SDL_video.h>
 #include <vector>
 #include <cstdint>
@@ -13,7 +14,6 @@ struct FrameStats {
     uint32_t submits = 0;    // total draw commands submitted this frame
     uint32_t draw_calls = 0; // actual glDraws issues
     uint32_t shader_binds = 0;
-    uint32_t vertex_layout_binds = 0;
     uint32_t ssbo_binds = 0;
     float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
 };
@@ -31,13 +31,12 @@ using SortKey = uint64_t;
 
 struct PipelineState {
     uint32_t shader = 0;
-    uint32_t vertex_layout = 0;
     // TODO: blend, depth test, cull, stencil, scissor
 };
 
 struct DrawPacket {
     PipelineStateId state_id = 0;
-    uint32_t index_count = 0;
+    MeshHandle mesh;
     uint32_t draw_data_offset = 0; // byte offset into per-frame SSBO ring buffer
     uint32_t draw_data_bytes = 0;  // 0 == this draw doesn't use per-draw data
     // TODO: instance count, base vertex, base instance, ssbo offset
@@ -61,6 +60,7 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
+    void use_mesh_pool(MeshPool& pool);
     PipelineStateId register_state(const PipelineState& state);
     DrawDataSlot allocate_draw_data(uint32_t bytes, uint32_t align);
     template <typename T> std::pair<uint32_t, uint32_t> push_draw_data(const T& data) {
@@ -82,6 +82,8 @@ public:
 private:
     SDL_GLContext context = nullptr;
     FrameStats frame_stats;
+
+    MeshPool* mesh_pool = nullptr;
 
     std::vector<PipelineState> states; // states, index is PipelineStateId
 

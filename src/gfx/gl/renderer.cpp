@@ -1,6 +1,8 @@
+#include <cassert>
 #include <chrono>
 #include <drz/gfx/renderer.hpp>
 #include <drz/util/logger.hpp>
+#include "drz/gfx/mesh_pool.hpp"
 #include "frame_ring_buffer.hpp"
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
@@ -157,11 +159,14 @@ Renderer::~Renderer() {
     SDL_GL_DestroyContext(context);
 }
 
+void Renderer::use_mesh_pool(MeshPool& pool) {
+    mesh_pool = &pool;
+}
+
 PipelineStateId Renderer::register_state(const PipelineState& state_to_register) {
     for (size_t i = 0; i < states.size(); ++i) {
         // if state is already registered, return
-        if (states[i].shader == state_to_register.shader &&
-            states[i].vertex_layout == state_to_register.vertex_layout) {
+        if (states[i].shader == state_to_register.shader) {
             return static_cast<PipelineStateId>(i);
         }
     }
@@ -187,6 +192,9 @@ void Renderer::flush() {
     // Sorts, then iterates while tracking state
     auto t0 = std::chrono::steady_clock::now(); // starting time
 
+    assert(mesh_pool && "Renderer::flush called before use_mesh_pool");
+    mesh_pool->bind(); // one-time vao bind for mesh pool
+
     // Sort the (key, draw index) pairs by key.
     // Build index permutation sorted by keys.
     perm.resize(sort_keys.size());
@@ -194,21 +202,16 @@ void Renderer::flush() {
     std::sort(perm.begin(), perm.end(), [&](uint32_t a, uint32_t b) { return sort_keys[a] < sort_keys[b]; });
 
     uint32_t cur_shader = 0;
-    uint32_t cur_vertex_layout = 0;
 
     for (uint32_t i : perm) {
         const DrawPacket& packet = draws[draw_indices[i]];       // get draw packet in its sorted order
         const PipelineState& pipeline = states[packet.state_id]; // get render state for this draw
 
+        // ### per-draw bind pipeline state ###
         if (pipeline.shader != cur_shader) {
             glUseProgram(pipeline.shader);
             cur_shader = pipeline.shader;
             ++frame_stats.shader_binds;
-        }
-        if (pipeline.vertex_layout != cur_vertex_layout) {
-            glBindVertexArray(pipeline.vertex_layout);
-            cur_vertex_layout = pipeline.vertex_layout;
-            ++frame_stats.vertex_layout_binds;
         }
         if (packet.draw_data_bytes > 0) {
             glBindBufferRange(GL_SHADER_STORAGE_BUFFER,
@@ -218,7 +221,14 @@ void Renderer::flush() {
                               packet.draw_data_bytes);
             ++frame_stats.ssbo_binds;
         }
-        glDrawElements(GL_TRIANGLES, packet.index_count, GL_UNSIGNED_INT, nullptr);
+
+        // ### draw call ###
+        MeshSlice s = mesh_pool->slice(packet.mesh);
+        glDrawElementsBaseVertex(GL_TRIANGLES,
+                                 s.index_count,
+                                 GL_UNSIGNED_INT,
+                                 reinterpret_cast<void*>(s.first_index * sizeof(uint32_t)),
+                                 s.base_vertex);
         ++frame_stats.draw_calls;
     }
 

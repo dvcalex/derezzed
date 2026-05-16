@@ -2,7 +2,7 @@
 #include <drz/core/app.hpp>
 #include <drz/gfx/renderer.hpp>
 #include <drz/gfx/shader.hpp>
-#include <drz/gfx/mesh.hpp>
+#include <drz/gfx/mesh_pool.hpp>
 
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
@@ -18,22 +18,53 @@ static std::string res_path(const std::string& relative) {
 class MatrixRain : public drz::App {
 public:
     void init() override {
-        quad.emplace();
+        pool.emplace(64, 64);
+
+        constexpr float positions[] = {
+            -1.0f,
+            1.0f,
+            0.0f,
+            -1.0f,
+            -1.0f,
+            0.0f,
+            1.0f,
+            -1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+        };
+        constexpr float uvs[] = {
+            0.0f,
+            1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+        };
+        constexpr uint32_t indices[] = {0, 1, 2, 2, 3, 0};
+
+        quad = pool->upload({
+            .positions = positions,
+            .uvs = uvs,
+            .indices = indices,
+        });
+
         shader.emplace(res_path("shaders/matrix.vert"), res_path("shaders/matrix.frag"));
     }
 
-    void handle_event(const SDL_Event& event) override {}
+    void handle_event(const SDL_Event&) override {}
 
-    void update(float dt, double elapsed) override {
+    void update(float, double elapsed) override {
         time = static_cast<float>(elapsed);
     }
 
     void render(drz::Renderer& renderer) override {
         if (!registered) {
-            pipeline = renderer.register_state({
-                .shader = shader->handle(),
-                .vertex_layout = quad->vertex_layout_handle(),
-            });
+            pipeline = renderer.register_state({.shader = shader->handle()});
+            renderer.use_mesh_pool(*pool);
             registered = true;
         }
 
@@ -43,16 +74,13 @@ public:
         shader->set_uniform("u_time", time);
         shader->set_uniform("u_resolution", glm::vec2(static_cast<float>(w), static_cast<float>(h)));
 
-        renderer.submit(drz::gen_sort_key(0, pipeline),
-                        {
-                            .state_id = pipeline,
-                            .index_count = quad->index_count(),
-                        });
+        renderer.submit(drz::gen_sort_key(0, pipeline), {.state_id = pipeline, .mesh = quad});
         renderer.flush();
     }
 
 private:
-    std::optional<drz::FullscreenQuadMesh> quad;
+    std::optional<drz::MeshPool> pool;
+    drz::MeshHandle quad;
     std::optional<drz::Shader> shader;
     float time = 0.0f;
 

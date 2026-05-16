@@ -2,7 +2,7 @@
 #include <drz/core/app.hpp>
 #include <drz/gfx/renderer.hpp>
 #include <drz/gfx/shader.hpp>
-#include <drz/gfx/mesh.hpp>
+#include <drz/gfx/mesh_pool.hpp>
 
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
@@ -31,7 +31,8 @@ private:
 
     static constexpr size_t quad_count = 5000;
 
-    std::optional<drz::QuadMesh> quad;
+    std::optional<drz::MeshPool> pool;
+    drz::MeshHandle quad;
     std::vector<drz::Shader> shaders;
 
     bool registered = false;
@@ -45,7 +46,39 @@ private:
 
 public:
     void init() override {
-        quad.emplace();
+        pool.emplace(64, 64);
+
+        constexpr float positions[] = {
+            -0.5f,
+            0.5f,
+            0.0f,
+            -0.5f,
+            -0.5f,
+            0.0f,
+            0.5f,
+            -0.5f,
+            0.0f,
+            0.5f,
+            0.5f,
+            0.0f,
+        };
+        constexpr float uvs[] = {
+            0.0f,
+            1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+        };
+        constexpr uint32_t indices[] = {0, 1, 2, 2, 3, 0};
+
+        quad = pool->upload({
+            .positions = positions,
+            .uvs = uvs,
+            .indices = indices,
+        });
 
         shaders.reserve(3);
         shaders.emplace_back(res_path("shaders/quad.vert"), res_path("shaders/solid.frag"));
@@ -71,18 +104,15 @@ public:
         }
     }
 
-    void handle_event(const SDL_Event& event) override {}
-
+    void handle_event(const SDL_Event&) override {}
     void update(float, double) override {}
 
     void render(drz::Renderer& renderer) override {
         if (!registered) {
             for (size_t s = 0; s < shaders.size(); ++s) {
-                pipelines[s] = renderer.register_state({
-                    .shader = shaders[s].handle(),
-                    .vertex_layout = quad->vertex_layout_handle(),
-                });
+                pipelines[s] = renderer.register_state({.shader = shaders[s].handle()});
             }
+            renderer.use_mesh_pool(*pool);
             registered = true;
         }
 
@@ -101,7 +131,7 @@ public:
             renderer.submit(drz::gen_sort_key(0, pid),
                             {
                                 .state_id = pid,
-                                .index_count = quad->index_count(),
+                                .mesh = quad,
                                 .draw_data_offset = offset,
                                 .draw_data_bytes = bytes,
                             });

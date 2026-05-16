@@ -2,13 +2,12 @@
 #include <drz/core/app.hpp>
 #include <drz/gfx/renderer.hpp>
 #include <drz/gfx/shader.hpp>
-#include <drz/gfx/mesh.hpp>
+#include <drz/gfx/mesh_pool.hpp>
 
 #include <SDL3/SDL.h>
-#include <glm/glm.hpp>
 
 #include <optional>
-#include <vector>
+#include <string>
 
 static std::string res_path(const std::string& relative) {
     const char* base = SDL_GetBasePath();
@@ -18,42 +17,47 @@ static std::string res_path(const std::string& relative) {
 class HelloApp : public drz::App {
 public:
     void init() override {
-        const std::vector<glm::vec3> positions = {
-            {0.0f, 0.5f, 0.0f},
-            {-0.5f, -0.5f, 0.0f},
-            {0.5f, -0.5f, 0.0f},
-        };
+        pool.emplace(64, 64);
 
-        mesh.emplace(positions); // construct mesh in-place
+        constexpr float positions[] = {
+            0.0f,
+            0.5f,
+            0.0f,
+            -0.5f,
+            -0.5f,
+            0.0f,
+            0.5f,
+            -0.5f,
+            0.0f,
+        };
+        constexpr uint32_t indices[] = {0, 1, 2};
+
+        triangle = pool->upload({
+            .positions = positions,
+            .indices = indices,
+        });
 
         shader.emplace(res_path("shaders/hello.vert"), res_path("shaders/hello.frag"));
     }
 
-    void handle_event(const SDL_Event& event) override {}
-
-    void update(float dt, double elapsed) override {}
+    void handle_event(const SDL_Event&) override {}
+    void update(float, double) override {}
 
     void render(drz::Renderer& renderer) override {
         if (!registered) {
-            pipeline = renderer.register_state({
-                .shader = shader->handle(),
-                .vertex_layout = mesh->vertex_layout_handle(),
-            });
+            pipeline = renderer.register_state({.shader = shader->handle()});
+            renderer.use_mesh_pool(*pool);
             registered = true;
         }
 
         renderer.clear(0.1f, 0.1f, 0.1f, 1.0f);
-        renderer.submit(drz::gen_sort_key(0, pipeline),
-                        {
-                            .state_id = pipeline,
-                            .index_count = mesh->index_count(),
-                        });
+        renderer.submit(drz::gen_sort_key(0, pipeline), {.state_id = pipeline, .mesh = triangle});
         renderer.flush();
     }
 
 private:
-    // Optionals for stack allocation and late init inside of init()
-    std::optional<drz::Mesh> mesh;
+    std::optional<drz::MeshPool> pool;
+    drz::MeshHandle triangle;
     std::optional<drz::Shader> shader;
 
     bool registered = false;
