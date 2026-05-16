@@ -1,0 +1,30 @@
+[
+  {
+    "label": "Build (Debug)",
+    "command": "cmake --preset debug && cmake --build --preset debug -j(nproc)",
+    "cwd": "${ZED_WORKTREE_ROOT}",
+    "reveal": "always",
+    "hide": "never",
+  },
+  {
+    "label": "Build (Release)",
+    "command": "cmake --preset release && cmake --build --preset release -j(nproc)",
+    "cwd": "${ZED_WORKTREE_ROOT}",
+    "reveal": "always",
+    "hide": "never",
+  },
+  {
+    "label": "Clean (Debug)",
+    "command": "cmake --build --preset debug --target clean",
+    "cwd": "${ZED_WORKTREE_ROOT}",
+    "reveal": "always",
+    "hide": "on_success",
+  },
+  {
+    "label": "Clean (Release)",
+    "command": "cmake --build --preset release --target clean",
+    "cwd": "${ZED_WORKTREE_ROOT}",
+    "reveal": "always",
+    "hide": "on_success",
+  },
+]

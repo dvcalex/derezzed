@@ -1,0 +1,33 @@
+{
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "arguments": [
+          "--header-insertion=iwyu",
+          "--header-insertion-decorators",
+          "--completion-style=detailed",
+          "--all-scopes-completion",
+          "--background-index",
+          "--pch-storage=memory",
+          "-j=4"
+        ]
+      }
+    }
+  },
+  "languages": {
+    "C++": {
+      "format_on_save": "on",
+      "code_actions_on_format": {
+        "source.fixAll": true,
+        "source.organizeImports": true
+      }
+    },
+    "C": {
+      "format_on_save": "on",
+      "code_actions_on_format": {
+        "source.fixAll": true,
+        "source.organizeImports": true
+      }
+    }
+  }
+}

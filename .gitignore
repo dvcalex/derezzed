@@ -36,7 +36,6 @@ _deps/
 # IDE
 .vscode/
 .idea/
-.zed/
 *.code-workspace
 *.iml
 

@@ -9,6 +9,9 @@ Diagnostics:
     # Show diagnostics from all included headers
     UnusedIncludes: Strict
 
+    # Warn when a symbol is used but its canonical header isn't directly included
+    MissingIncludes: Strict
+
     # Suppress noisy diagnostics from generated/vendored headers
     Suppress:
         - "pp_file_not_found"
