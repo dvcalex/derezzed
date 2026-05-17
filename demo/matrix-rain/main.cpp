@@ -75,7 +75,6 @@ public:
         shader->set_uniform("u_resolution", glm::vec2(static_cast<float>(w), static_cast<float>(h)));
 
         renderer.submit(drz::gen_sort_key(0, pipeline), {.state_id = pipeline, .mesh = quad});
-        renderer.flush();
     }
 
 private:

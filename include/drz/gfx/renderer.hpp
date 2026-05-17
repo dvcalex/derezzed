@@ -10,6 +10,9 @@
 
 namespace drz {
 
+class FrameRingBuffer;
+class IndirectRingBuffer;
+
 struct FrameStats {
     uint32_t submits = 0;    // total draw commands submitted this frame
     uint32_t draw_calls = 0; // actual glDraws issues
@@ -17,8 +20,6 @@ struct FrameStats {
     uint32_t ssbo_binds = 0;
     float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
 };
-
-class FrameRingBuffer; // forward-decl. full type lives in src/gfx/gl/
 
 struct DrawDataSlot {
     void* ptr;
@@ -88,6 +89,7 @@ private:
     std::vector<PipelineState> states; // states, index is PipelineStateId
 
     std::unique_ptr<FrameRingBuffer> frame_ring_buffer; // manages per-frame SSBO for draw data
+    std::unique_ptr<IndirectRingBuffer> indirect_ring_buffer;
 
     // per-frame queues cleared in flush()
     std::vector<SortKey> sort_keys;     // hot path. 8 bytes each

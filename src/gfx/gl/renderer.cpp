@@ -1,8 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <drz/gfx/renderer.hpp>
+#include <drz/gfx/mesh_pool.hpp>
+#include <drz/gfx/indirect_ring_buffer.hpp>
 #include <drz/util/logger.hpp>
-#include "drz/gfx/mesh_pool.hpp"
 #include "frame_ring_buffer.hpp"
 #include <fstream>
 #include <glad/gl.h>
@@ -123,6 +124,15 @@ void GLAPIENTRY gl_debug_message(GLenum source,
 #endif
 }
 
+struct DrawElementsIndirectCommand {
+    uint32_t count;
+    uint32_t instance_count;
+    uint32_t first_index;
+    int32_t base_vertex;
+    uint32_t base_instance;
+};
+static_assert(sizeof(DrawElementsIndirectCommand) == 20); // guard against accidental padding
+
 } // anonymous namespace
 
 namespace drz {
@@ -175,6 +185,10 @@ Renderer::Renderer(SDL_Window* window) {
     // Build frame ring buffer
     constexpr size_t REGION_BYTES = 2 * 1024 * 1024; // 2 MB per-frame of draw data
     frame_ring_buffer = std::make_unique<FrameRingBuffer>(REGION_BYTES, static_cast<size_t>(ssbo_align));
+
+    // Build indirect command ring buffer
+    constexpr size_t INDIRECT_BYTES_PER_FRAME = 256 * 1024;
+    indirect_ring_buffer = std::make_unique<IndirectRingBuffer>(INDIRECT_BYTES_PER_FRAME);
 }
 
 Renderer::~Renderer() {
@@ -211,54 +225,82 @@ void Renderer::submit(SortKey key, const DrawPacket& packet) {
 }
 
 void Renderer::flush() {
-    // Sorts, then iterates while tracking state
     auto t0 = std::chrono::steady_clock::now(); // starting time
 
     assert(mesh_pool && "Renderer::flush called before use_mesh_pool");
-    mesh_pool->bind(); // one-time vao bind for mesh pool
+    mesh_pool->bind();            // one-time vao bind for mesh pool
+    indirect_ring_buffer->bind(); // one-time bind for indirect draw commands buffer
+
+    // Bind whole ssbo once for the frame
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, frame_ring_buffer->handle());
+    ++frame_stats.ssbo_binds;
 
     // Sort the (key, draw index) pairs by key.
     // Build index permutation sorted by keys.
     perm.resize(sort_keys.size());
-    std::iota(perm.begin(), perm.end(), 0u); // fill with 0,1,2,...n
+    std::iota(perm.begin(), perm.end(), 0u); // fill with 0,1,2, ... n
     std::sort(perm.begin(), perm.end(), [&](uint32_t a, uint32_t b) { return sort_keys[a] < sort_keys[b]; });
 
     uint32_t cur_shader = 0;
+    const size_t N = perm.size();
 
-    for (uint32_t i : perm) {
-        const DrawPacket& packet = draws[draw_indices[i]];       // get draw packet in its sorted order
-        const PipelineState& pipeline = states[packet.state_id]; // get render state for this draw
+    // Iterate over runs of identical state_id, one multidraw per run.
+    for (uint32_t run_start = 0; run_start < N;) {
+        const DrawPacket& head_packt = draws[draw_indices[perm[run_start]]];
+        const PipelineStateId pipeline_state = head_packt.state_id;
 
-        // ### per-draw bind pipeline state ###
+        size_t run_end = run_start + 1;
+        while (run_end < N && draws[draw_indices[perm[run_end]]].state_id == pipeline_state) {
+            ++run_end;
+        }
+        const size_t run_count = run_end - run_start;
+
+        const PipelineState& pipeline = states[pipeline_state];
         if (pipeline.shader != cur_shader) {
             glUseProgram(pipeline.shader);
             cur_shader = pipeline.shader;
             ++frame_stats.shader_binds;
         }
-        if (packet.draw_data_bytes > 0) {
-            glBindBufferRange(GL_SHADER_STORAGE_BUFFER,
-                              0,
-                              frame_ring_buffer->handle(),
-                              packet.draw_data_offset,
-                              packet.draw_data_bytes);
-            ++frame_stats.ssbo_binds;
+
+        auto alloc =
+            indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
+        auto* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
+
+        for (size_t i = 0; i < run_count; ++i) {
+            const DrawPacket& packet = draws[draw_indices[perm[run_start + i]]];
+            const MeshSlice mesh = mesh_pool->slice(packet.mesh);
+
+            uint32_t base_instance = 0;
+            if (packet.draw_data_bytes > 0) {
+                base_instance = packet.draw_data_offset / packet.draw_data_bytes;
+            }
+
+            commands_ptr[i] = DrawElementsIndirectCommand {
+                .count = mesh.index_count,
+                .instance_count = 1,
+                .first_index = mesh.first_index,
+                .base_vertex = static_cast<int32_t>(mesh.base_vertex),
+                .base_instance = base_instance,
+            };
         }
 
-        // ### draw call ###
-        MeshSlice s = mesh_pool->slice(packet.mesh);
-        glDrawElementsBaseVertex(GL_TRIANGLES,
-                                 s.index_count,
-                                 GL_UNSIGNED_INT,
-                                 reinterpret_cast<void*>(s.first_index * sizeof(uint32_t)),
-                                 s.base_vertex);
+        glMultiDrawElementsIndirect(GL_TRIANGLES,
+                                    GL_UNSIGNED_INT,
+                                    reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)),
+                                    static_cast<GLsizei>(run_count),
+                                    0);
         ++frame_stats.draw_calls;
+
+        run_start = run_end;
     }
 
     sort_keys.clear();
     draw_indices.clear();
     draws.clear();
 
-    frame_ring_buffer->next_frame(); // rotate to next frame's region and reset it
+    // rotate to next frame's region/frame and reset it
+    frame_ring_buffer->next_frame();
+    indirect_ring_buffer->next_frame();
 
     auto t1 = std::chrono::steady_clock::now(); // ending time
     frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();

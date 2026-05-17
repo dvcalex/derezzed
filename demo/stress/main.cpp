@@ -1,3 +1,8 @@
+#include "glm/ext/vector_float2.hpp"
+#include "glm/ext/vector_float4.hpp"
+#include <SDL3/SDL_filesystem.h>
+#include <cstddef>
+#include <cstdint>
 #include <drz/core/engine.hpp>
 #include <drz/core/app.hpp>
 #include <drz/gfx/renderer.hpp>
@@ -136,7 +141,6 @@ public:
                                 .draw_data_bytes = bytes,
                             });
         }
-        renderer.flush();
     }
 };
 

@@ -30,10 +30,19 @@ public:
             -0.5f,
             0.0f,
         };
+        constexpr float uvs[] = {
+            0.5f,
+            1.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+        };
         constexpr uint32_t indices[] = {0, 1, 2};
 
         triangle = pool->upload({
             .positions = positions,
+            .uvs = uvs,
             .indices = indices,
         });
 
@@ -52,7 +61,6 @@ public:
 
         renderer.clear(0.1f, 0.1f, 0.1f, 1.0f);
         renderer.submit(drz::gen_sort_key(0, pipeline), {.state_id = pipeline, .mesh = triangle});
-        renderer.flush();
     }
 
 private:

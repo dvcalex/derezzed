@@ -34,6 +34,7 @@ add_library(${PROJECT_NAME} STATIC
     src/gfx/gl/renderer.cpp
     src/gfx/gl/frame_ring_buffer.cpp
     src/gfx/gl/mesh_pool.cpp
+    src/gfx/gl/indirect_ring_buffer.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
