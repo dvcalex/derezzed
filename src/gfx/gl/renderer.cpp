@@ -1,20 +1,23 @@
-#include <cassert>
-#include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <drz/gfx/renderer.hpp>
 #include <drz/util/logger.hpp>
 #include "drz/gfx/mesh_pool.hpp"
 #include "frame_ring_buffer.hpp"
+#include <fstream>
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_timer.h>
+#include <cassert>
+#include <chrono>
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <numeric>
-#include <cstdint>
 #include <algorithm>
+#include <numeric>
 
 namespace {
 
@@ -62,6 +65,21 @@ const char* gl_debug_type_str(GLenum type) {
     }
 }
 
+static bool debugger_attached() {
+    static const bool cached = [] {
+        std::ifstream status("/proc/self/status");
+        for (std::string line; std::getline(status, line);) {
+            if (line.rfind("TracerPid:", 0) == 0) {
+                int tracer = 0;
+                std::sscanf(line.c_str(), "TracerPid: %d", &tracer);
+                return tracer != 0;
+            }
+        }
+        return false;
+    }();
+    return cached;
+}
+
 void GLAPIENTRY gl_debug_message(GLenum source,
                                  GLenum type,
                                  GLuint id,
@@ -96,7 +114,11 @@ void GLAPIENTRY gl_debug_message(GLenum source,
     // Trap on HIGH severity errors so debugger stops on the bad GL call in the stack frame.
     // Outside of a debugger, the program will exit.
     if (severity == GL_DEBUG_SEVERITY_HIGH) {
-        __builtin_trap();
+        if (debugger_attached()) {
+            __builtin_trap(); // debugger stops on the bad GL call
+        } else {
+            std::abort(); // SIGABRT, OS cleans up cleanly
+        }
     }
 #endif
 }
