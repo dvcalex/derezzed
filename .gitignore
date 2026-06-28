@@ -1,11 +1,10 @@
-# Build output
 build/
 out/
-cmake-build-*/
 
-# Object and binary files
+# Object, dependency, and binary files
 *.o
 *.obj
+*.d
 *.a
 *.lib
 *.so
@@ -18,21 +17,6 @@ cmake-build-*/
 *.gch
 *.pch
 
-# CMake generated
-CMakeCache.txt
-CMakeFiles/
-CMakeScripts/
-CMakeLists.txt.user
-CMakeUserPresets.json
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-Makefile
-*.cmake
-!CMakeLists.txt
-_deps/
-
 # IDE
 .vscode/
 .idea/
@@ -42,7 +26,7 @@ _deps/
 # clangd cache
 .cache/
 
-# OS specific
+# OS
 .DS_Store
 Thumbs.db
 

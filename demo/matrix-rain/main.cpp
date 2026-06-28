@@ -1,8 +1,8 @@
-#include <drz/core/engine.hpp>
-#include <drz/core/app.hpp>
-#include <drz/gfx/renderer.hpp>
-#include <drz/gfx/shader.hpp>
-#include <drz/gfx/mesh_pool.hpp>
+#include "drz/core/engine.hpp"
+#include "drz/core/app.hpp"
+#include "drz/gfx/renderer.hpp"
+#include "drz/gfx/shader.hpp"
+#include "drz/gfx/mesh_pool.hpp"
 
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
@@ -10,15 +10,18 @@
 #include <optional>
 #include <string>
 
-static std::string res_path(const std::string& relative) {
+static std::string ResPath(const std::string& relative)
+{
     const char* base = SDL_GetBasePath();
     return std::string(base) + "res/" + relative;
 }
 
-class MatrixRain : public drz::App {
+class MatrixRain : public drz::App
+{
 public:
-    void init() override {
-        pool.emplace(64, 64);
+    void Init() override
+    {
+        m_pool.emplace(64, 64);
 
         constexpr float positions[] = {
             -1.0f,
@@ -46,47 +49,51 @@ public:
         };
         constexpr uint32_t indices[] = {0, 1, 2, 2, 3, 0};
 
-        quad = pool->upload({
+        m_quad = m_pool->Upload({
             .positions = positions,
             .uvs = uvs,
             .indices = indices,
         });
 
-        shader.emplace(res_path("shaders/matrix.vert"), res_path("shaders/matrix.frag"));
+        m_shader.emplace(ResPath("shaders/matrix.vert"), ResPath("shaders/matrix.frag"));
     }
 
-    void handle_event(const SDL_Event&) override {}
+    void HandleEvent(const SDL_Event&) override {}
 
-    void update(float, double elapsed) override {
-        time = static_cast<float>(elapsed);
+    void Update(float, double elapsed) override
+    {
+        m_time = static_cast<float>(elapsed);
     }
 
-    void render(drz::Renderer& renderer) override {
-        if (!registered) {
-            pipeline = renderer.register_state({.shader = shader->handle()});
-            renderer.use_mesh_pool(*pool);
-            registered = true;
+    void Render(drz::Renderer& renderer) override
+    {
+        if (!m_registered)
+        {
+            m_pipeline = renderer.RegisterState({.shader = m_shader->Handle()});
+            renderer.UseMeshPool(*m_pool);
+            m_registered = true;
         }
 
-        renderer.clear(0.0f, 0.0f, 0.0f, 1.0f);
+        renderer.Clear(0.0f, 0.0f, 0.0f, 1.0f);
 
-        auto [w, h] = engine->framebuffer_size();
-        shader->set_uniform("u_time", time);
-        shader->set_uniform("u_resolution", glm::vec2(static_cast<float>(w), static_cast<float>(h)));
+        auto [w, h] = m_engine->FramebufferSize();
+        m_shader->SetUniform("u_time", m_time);
+        m_shader->SetUniform("u_resolution", glm::vec2(static_cast<float>(w), static_cast<float>(h)));
 
-        renderer.submit(drz::gen_sort_key(0, pipeline), {.state_id = pipeline, .mesh = quad});
+        renderer.Submit(drz::GenSortKey(0, m_pipeline), {.state_id = m_pipeline, .mesh = m_quad});
     }
 
 private:
-    std::optional<drz::MeshPool> pool;
-    drz::MeshHandle quad;
-    std::optional<drz::Shader> shader;
-    float time = 0.0f;
+    std::optional<drz::MeshPool> m_pool;
+    drz::MeshHandle m_quad;
+    std::optional<drz::Shader> m_shader;
+    float m_time = 0.0f;
 
-    bool registered = false;
-    drz::PipelineStateId pipeline = 0;
+    bool m_registered = false;
+    drz::PipelineStateId m_pipeline = 0;
 };
 
-drz::App* create_app() {
+drz::App* CreateApp()
+{
     return new MatrixRain();
 }

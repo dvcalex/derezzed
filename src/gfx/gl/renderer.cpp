@@ -1,9 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
-#include <drz/gfx/renderer.hpp>
-#include <drz/gfx/mesh_pool.hpp>
-#include <drz/gfx/indirect_ring_buffer.hpp>
-#include <drz/util/logger.hpp>
+#include "drz/gfx/renderer.hpp"
+#include "drz/gfx/mesh_pool.hpp"
+#include "drz/gfx/indirect_ring_buffer.hpp"
+#include "drz/util/logger.hpp"
 #include "frame_ring_buffer.hpp"
 #include <fstream>
 #include <glad/gl.h>
@@ -20,10 +20,13 @@
 #include <algorithm>
 #include <numeric>
 
-namespace {
+namespace
+{
 
-const char* gl_debug_source_str(GLenum source) {
-    switch (source) {
+const char* GlDebugSourceStr(GLenum source)
+{
+    switch (source)
+    {
     case GL_DEBUG_SOURCE_API:
         return "API";
     case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
@@ -41,8 +44,10 @@ const char* gl_debug_source_str(GLenum source) {
     }
 }
 
-const char* gl_debug_type_str(GLenum type) {
-    switch (type) {
+const char* GlDebugTypeStr(GLenum type)
+{
+    switch (type)
+    {
     case GL_DEBUG_TYPE_ERROR:
         return "ERROR";
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
@@ -66,11 +71,15 @@ const char* gl_debug_type_str(GLenum type) {
     }
 }
 
-static bool debugger_attached() {
-    static const bool cached = [] {
+static bool DebuggerAttached()
+{
+    static const bool cached = []
+    {
         std::ifstream status("/proc/self/status");
-        for (std::string line; std::getline(status, line);) {
-            if (line.rfind("TracerPid:", 0) == 0) {
+        for (std::string line; std::getline(status, line);)
+        {
+            if (line.rfind("TracerPid:", 0) == 0)
+            {
                 int tracer = 0;
                 std::sscanf(line.c_str(), "TracerPid: %d", &tracer);
                 return tracer != 0;
@@ -81,20 +90,23 @@ static bool debugger_attached() {
     return cached;
 }
 
-void GLAPIENTRY gl_debug_message(GLenum source,
-                                 GLenum type,
-                                 GLuint id,
-                                 GLenum severity,
-                                 GLsizei /*length*/,
-                                 const GLchar* message,
-                                 const void* /*userParam*/) {
+void GLAPIENTRY GlDebugMessage(GLenum source,
+                               GLenum type,
+                               GLuint id,
+                               GLenum severity,
+                               GLsizei /*length*/,
+                               const GLchar* message,
+                               const void* /*userParam*/)
+{
     // Filter out NOTIFICATION logs
-    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+    {
         return;
     }
 
     const char* sev = "?";
-    switch (severity) {
+    switch (severity)
+    {
     case GL_DEBUG_SEVERITY_HIGH:
         sev = "HIGH";
         break;
@@ -108,23 +120,28 @@ void GLAPIENTRY gl_debug_message(GLenum source,
         break;
     }
 
-    DRZ_LOGF("[GL][{}][{}][{}] id={} {}", sev, gl_debug_source_str(source), gl_debug_type_str(type), id, message);
+    DRZ_LOGF("[GL][{}][{}][{}] id={} {}", sev, GlDebugSourceStr(source), GlDebugTypeStr(type), id, message);
     DRZ_FLUSH_LOG();
 
 #ifndef NDEBUG
     // Trap on HIGH severity errors so debugger stops on the bad GL call in the stack frame.
     // Outside of a debugger, the program will exit.
-    if (severity == GL_DEBUG_SEVERITY_HIGH) {
-        if (debugger_attached()) {
+    if (severity == GL_DEBUG_SEVERITY_HIGH)
+    {
+        if (DebuggerAttached())
+        {
             __builtin_trap(); // debugger stops on the bad GL call
-        } else {
+        }
+        else
+        {
             std::abort(); // SIGABRT, OS cleans up cleanly
         }
     }
 #endif
 }
 
-struct DrawElementsIndirectCommand {
+struct DrawElementsIndirectCommand
+{
     uint32_t count;
     uint32_t instance_count;
     uint32_t first_index;
@@ -135,10 +152,12 @@ static_assert(sizeof(DrawElementsIndirectCommand) == 20); // guard against accid
 
 } // anonymous namespace
 
-namespace drz {
+namespace drz
+{
 
 // api-specific window configuration
-void Renderer::configure_window_attributes() {
+void Renderer::ConfigureWindowAttributes()
+{
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -147,28 +166,33 @@ void Renderer::configure_window_attributes() {
 #endif
 }
 
-SDL_WindowFlags Renderer::window_flags() {
+SDL_WindowFlags Renderer::WindowFlags()
+{
     return SDL_WINDOW_OPENGL;
 }
 
-Renderer::Renderer(SDL_Window* window) {
+Renderer::Renderer(SDL_Window* window)
+{
     // Create OpenGL context
-    context = SDL_GL_CreateContext(window);
-    if (!context) {
+    m_context = SDL_GL_CreateContext(window);
+    if (!m_context)
+    {
         throw std::runtime_error(std::string("SDL_GL_CreateContext: ") + SDL_GetError());
     }
     // Load GLAD
-    if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
+    if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress))
+    {
         throw std::runtime_error("gladLoadGL failed");
     }
 
     // enable debug callback if we got a debug context
     GLint flags = 0;
     glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(&gl_debug_message, nullptr);
+        glDebugMessageCallback(&GlDebugMessage, nullptr);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
 
@@ -184,94 +208,107 @@ Renderer::Renderer(SDL_Window* window) {
 
     // Build frame ring buffer
     constexpr size_t REGION_BYTES = 2 * 1024 * 1024; // 2 MB per-frame of draw data
-    frame_ring_buffer = std::make_unique<FrameRingBuffer>(REGION_BYTES, static_cast<size_t>(ssbo_align));
+    m_frame_ring_buffer = std::make_unique<FrameRingBuffer>(REGION_BYTES, static_cast<size_t>(ssbo_align));
 
     // Build indirect command ring buffer
     constexpr size_t INDIRECT_BYTES_PER_FRAME = 256 * 1024;
-    indirect_ring_buffer = std::make_unique<IndirectRingBuffer>(INDIRECT_BYTES_PER_FRAME);
+    m_indirect_ring_buffer = std::make_unique<IndirectRingBuffer>(INDIRECT_BYTES_PER_FRAME);
 }
 
-Renderer::~Renderer() {
-    SDL_GL_DestroyContext(context);
+Renderer::~Renderer()
+{
+    SDL_GL_DestroyContext(m_context);
 }
 
-void Renderer::use_mesh_pool(MeshPool& pool) {
-    mesh_pool = &pool;
+void Renderer::UseMeshPool(MeshPool& pool)
+{
+    m_mesh_pool = &pool;
 }
 
-PipelineStateId Renderer::register_state(const PipelineState& state_to_register) {
-    for (size_t i = 0; i < states.size(); ++i) {
+PipelineStateId Renderer::RegisterState(const PipelineState& state_to_register)
+{
+    for (size_t i = 0; i < m_states.size(); ++i)
+    {
         // if state is already registered, return
-        if (states[i].shader == state_to_register.shader) {
+        if (m_states[i].shader == state_to_register.shader)
+        {
             return static_cast<PipelineStateId>(i);
         }
     }
     // add state and return
-    states.push_back(state_to_register);
-    return static_cast<PipelineStateId>(states.size() - 1);
+    m_states.push_back(state_to_register);
+    return static_cast<PipelineStateId>(m_states.size() - 1);
 }
 
-DrawDataSlot Renderer::allocate_draw_data(uint32_t bytes, uint32_t align) {
-    auto slot = frame_ring_buffer->allocate(bytes, align);
+DrawDataSlot Renderer::AllocateDrawData(uint32_t bytes, uint32_t align)
+{
+    auto slot = m_frame_ring_buffer->Allocate(bytes, align);
     return {slot.ptr, slot.offset, slot.bytes};
 }
 
-void Renderer::submit(SortKey key, const DrawPacket& packet) {
+void Renderer::Submit(SortKey key, const DrawPacket& packet)
+{
     // append draw packet and sort key
-    sort_keys.push_back(key);                                    // add draw's sort key
-    draw_indices.push_back(static_cast<uint32_t>(draws.size())); // index is at end of current draws vector
-    draws.push_back(packet);                                     // now add actual packet
-    ++frame_stats.submits;
+    m_sort_keys.push_back(key);                                      // add draw's sort key
+    m_draw_indices.push_back(static_cast<uint32_t>(m_draws.size())); // index is at end of current draws vector
+    m_draws.push_back(packet);                                       // now add actual packet
+    ++m_frame_stats.submits;
 }
 
-void Renderer::flush() {
+void Renderer::Flush()
+{
     auto t0 = std::chrono::steady_clock::now(); // starting time
 
-    assert(mesh_pool && "Renderer::flush called before use_mesh_pool");
-    mesh_pool->bind();            // one-time vao bind for mesh pool
-    indirect_ring_buffer->bind(); // one-time bind for indirect draw commands buffer
+    assert(m_mesh_pool && "Renderer::flush called before use_mesh_pool");
+    m_mesh_pool->Bind();            // one-time vao bind for mesh pool
+    m_indirect_ring_buffer->Bind(); // one-time bind for indirect draw commands buffer
 
     // Bind whole ssbo once for the frame
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, frame_ring_buffer->handle());
-    ++frame_stats.ssbo_binds;
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_frame_ring_buffer->Handle());
+    ++m_frame_stats.ssbo_binds;
 
     // Sort the (key, draw index) pairs by key.
     // Build index permutation sorted by keys.
-    perm.resize(sort_keys.size());
-    std::iota(perm.begin(), perm.end(), 0u); // fill with 0,1,2, ... n
-    std::sort(perm.begin(), perm.end(), [&](uint32_t a, uint32_t b) { return sort_keys[a] < sort_keys[b]; });
+    m_perm.resize(m_sort_keys.size());
+    std::iota(m_perm.begin(), m_perm.end(), 0u); // fill with 0,1,2, ... n
+    std::sort(m_perm.begin(), m_perm.end(), [&](uint32_t a, uint32_t b) { return m_sort_keys[a] < m_sort_keys[b]; });
 
     uint32_t cur_shader = 0;
-    const size_t N = perm.size();
+    const size_t N = m_perm.size();
 
     // Iterate over runs of identical state_id, one multidraw per run.
-    for (uint32_t run_start = 0; run_start < N;) {
-        const DrawPacket& head_packt = draws[draw_indices[perm[run_start]]];
+    for (uint32_t run_start = 0; run_start < N;)
+    {
+        const DrawPacket& head_packt = m_draws[m_draw_indices[m_perm[run_start]]];
         const PipelineStateId pipeline_state = head_packt.state_id;
 
         size_t run_end = run_start + 1;
-        while (run_end < N && draws[draw_indices[perm[run_end]]].state_id == pipeline_state) {
+        while (run_end < N && m_draws[m_draw_indices[m_perm[run_end]]].state_id == pipeline_state)
+        {
             ++run_end;
         }
         const size_t run_count = run_end - run_start;
 
-        const PipelineState& pipeline = states[pipeline_state];
-        if (pipeline.shader != cur_shader) {
+        const PipelineState& pipeline = m_states[pipeline_state];
+        if (pipeline.shader != cur_shader)
+        {
             glUseProgram(pipeline.shader);
             cur_shader = pipeline.shader;
-            ++frame_stats.shader_binds;
+            ++m_frame_stats.shader_binds;
         }
 
         auto alloc =
-            indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
+            m_indirect_ring_buffer->Allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
         auto* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
 
-        for (size_t i = 0; i < run_count; ++i) {
-            const DrawPacket& packet = draws[draw_indices[perm[run_start + i]]];
-            const MeshSlice mesh = mesh_pool->slice(packet.mesh);
+        for (size_t i = 0; i < run_count; ++i)
+        {
+            const DrawPacket& packet = m_draws[m_draw_indices[m_perm[run_start + i]]];
+            const MeshSlice mesh = m_mesh_pool->Slice(packet.mesh);
 
             uint32_t base_instance = 0;
-            if (packet.draw_data_bytes > 0) {
+            if (packet.draw_data_bytes > 0)
+            {
                 base_instance = packet.draw_data_offset / packet.draw_data_bytes;
             }
 
@@ -289,28 +326,30 @@ void Renderer::flush() {
                                     reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)),
                                     static_cast<GLsizei>(run_count),
                                     0);
-        ++frame_stats.draw_calls;
+        ++m_frame_stats.draw_calls;
 
         run_start = run_end;
     }
 
-    sort_keys.clear();
-    draw_indices.clear();
-    draws.clear();
+    m_sort_keys.clear();
+    m_draw_indices.clear();
+    m_draws.clear();
 
     // rotate to next frame's region/frame and reset it
-    frame_ring_buffer->next_frame();
-    indirect_ring_buffer->next_frame();
+    m_frame_ring_buffer->NextFrame();
+    m_indirect_ring_buffer->NextFrame();
 
     auto t1 = std::chrono::steady_clock::now(); // ending time
-    frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
+    m_frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
 }
 
-void Renderer::set_viewport(int width, int height) {
+void Renderer::SetViewport(int width, int height)
+{
     glViewport(0, 0, width, height);
 }
 
-void Renderer::clear(float r, float g, float b, float a) {
+void Renderer::Clear(float r, float g, float b, float a)
+{
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

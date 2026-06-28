@@ -1,23 +1,26 @@
-#include <drz/core/engine.hpp>
-#include <drz/core/app.hpp>
-#include <drz/gfx/renderer.hpp>
-#include <drz/gfx/shader.hpp>
-#include <drz/gfx/mesh_pool.hpp>
+#include "drz/core/engine.hpp"
+#include "drz/core/app.hpp"
+#include "drz/gfx/renderer.hpp"
+#include "drz/gfx/shader.hpp"
+#include "drz/gfx/mesh_pool.hpp"
 
 #include <SDL3/SDL.h>
 
 #include <optional>
 #include <string>
 
-static std::string res_path(const std::string& relative) {
+static std::string ResPath(const std::string& relative)
+{
     const char* base = SDL_GetBasePath();
     return std::string(base) + "res/" + relative;
 }
 
-class HelloApp : public drz::App {
+class HelloApp : public drz::App
+{
 public:
-    void init() override {
-        pool.emplace(64, 64);
+    void Init() override
+    {
+        m_pool.emplace(64, 64);
 
         constexpr float positions[] = {
             0.0f,
@@ -40,38 +43,41 @@ public:
         };
         constexpr uint32_t indices[] = {0, 1, 2};
 
-        triangle = pool->upload({
+        m_triangle = m_pool->Upload({
             .positions = positions,
             .uvs = uvs,
             .indices = indices,
         });
 
-        shader.emplace(res_path("shaders/hello.vert"), res_path("shaders/hello.frag"));
+        m_shader.emplace(ResPath("shaders/hello.vert"), ResPath("shaders/hello.frag"));
     }
 
-    void handle_event(const SDL_Event&) override {}
-    void update(float, double) override {}
+    void HandleEvent(const SDL_Event&) override {}
+    void Update(float, double) override {}
 
-    void render(drz::Renderer& renderer) override {
-        if (!registered) {
-            pipeline = renderer.register_state({.shader = shader->handle()});
-            renderer.use_mesh_pool(*pool);
-            registered = true;
+    void Render(drz::Renderer& renderer) override
+    {
+        if (!m_registered)
+        {
+            m_pipeline = renderer.RegisterState({.shader = m_shader->Handle()});
+            renderer.UseMeshPool(*m_pool);
+            m_registered = true;
         }
 
-        renderer.clear(0.1f, 0.1f, 0.1f, 1.0f);
-        renderer.submit(drz::gen_sort_key(0, pipeline), {.state_id = pipeline, .mesh = triangle});
+        renderer.Clear(0.1f, 0.1f, 0.1f, 1.0f);
+        renderer.Submit(drz::GenSortKey(0, m_pipeline), {.state_id = m_pipeline, .mesh = m_triangle});
     }
 
 private:
-    std::optional<drz::MeshPool> pool;
-    drz::MeshHandle triangle;
-    std::optional<drz::Shader> shader;
+    std::optional<drz::MeshPool> m_pool;
+    drz::MeshHandle m_triangle;
+    std::optional<drz::Shader> m_shader;
 
-    bool registered = false;
-    drz::PipelineStateId pipeline = 0;
+    bool m_registered = false;
+    drz::PipelineStateId m_pipeline = 0;
 };
 
-drz::App* create_app() {
+drz::App* CreateApp()
+{
     return new HelloApp();
 }

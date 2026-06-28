@@ -3,8 +3,8 @@ WIP toy graphics engine
 
 ## Features
 - CMake build system
-    - Engine builds as static library
-    - each app has its own CMakeLists.txt that links against the engine
+    - Engine builds as a static library
+    - each app has its own `CMakeLists.txt` that links against the engine
 - SDL3 for windowing, input, media, etc.
 - Engine/header api-agnostic interfaces
   - OpenGL backend (can add more with some work)
@@ -12,30 +12,46 @@ WIP toy graphics engine
 - Demos
 
 ## Dependencies
+- Everything is vendored under `vendor/`.
+- SDL3 is built from source and referenced as a git submodule.
 
-Required:
+### Required:
 
-- **CMake** 3.21+
-- **A C++20 compiler**
-- **OpenGL** driver and dev headers (should already be available)
-- **SDL3** (CMake will fetch for you if it can't find it in system)
+- A C++20 compiler
+- [CMake](https://cmake.org/) 3.21+
+- `git` for submodule
 
 ## Build
 
-```bash
-# Configure (debug or release)
-cmake --preset debug
+Clone with submodules or init after:
 
-# Build
-cmake --build --preset debug
+```bash
+git clone --recurse-submodules <repo-url>
+# or, if already cloned:
+git submodule update --init --depth 1
 ```
 
-Output goes to `build/debug/bin/` or `build/release/bin/`.
+Then configure and build with the cmake preset:
+
+```bash
+# Configure (first time only)
+cmake --preset default
+
+# Build everything
+cmake --build --preset default
+
+# Or optimized build
+cmake --preset default -DCMAKE_BUILD_TYPE=Release && cmake --build --preset default
+```
+
+> SDL3 might take a while, should only concern the first build since it's incremental
+
+Each demo executable is placed in `build/bin/`, with its `res/` copied next to it.
 
 ## Run
 
 ```bash
-./build/debug/bin/hello
+./build/bin/hello
 ```
 
 ## Demos
@@ -46,6 +62,7 @@ Live in the `demo/` folder, build and run like above. Use these for testing and 
 
 Implement `drz::App` and provide a `create_app()` factory:
 
+*psuedo code*
 ```cpp
 #include <drz/core/engine.hpp>
 #include <drz/core/app.hpp>
@@ -71,4 +88,6 @@ drz::App* create_app() {
 }
 ```
 
-Link your executable against `drz SDL3::SDL3 OpenGL::GL` (look at a demo `CMakeLists.txt` for reference).
+Add a `CMakeLists.txt` next to your sources that links the engine (look at a demo's `CMakeLists.txt` for reference).
+
+Then add it to the build by dropping `add_subdirectory(path/to/myapp)` into the root `CMakeLists.txt`.

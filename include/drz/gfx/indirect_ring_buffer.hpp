@@ -2,9 +2,11 @@
 
 #include <cstdint>
 
-namespace drz {
+namespace drz
+{
 
-class IndirectRingBuffer {
+class IndirectRingBuffer
+{
 public:
     explicit IndirectRingBuffer(uint32_t bytes_per_frame);
     ~IndirectRingBuffer();
@@ -13,23 +15,24 @@ public:
     IndirectRingBuffer(IndirectRingBuffer&&) = delete;
     IndirectRingBuffer& operator=(IndirectRingBuffer&&) = delete;
 
-    void next_frame(); // advance to next sub-region, reset bump cursor
+    void NextFrame(); // advance to next sub-region, reset bump cursor
 
-    struct Allocation {
+    struct Allocation
+    {
         void* ptr; // CPU writable
         uint32_t byte_offset;
     };
-    Allocation allocate(uint32_t bytes);
+    Allocation Allocate(uint32_t bytes);
 
-    uint32_t handle() const;
-    void bind() const;
+    uint32_t Handle() const;
+    void Bind() const;
 
 private:
     static constexpr uint32_t NUM_FRAMES = 3; // triple buffered
-    uint32_t buffer_handle = 0;
-    uint8_t* mapped = nullptr;
-    uint32_t bytes_per_frame = 0;
-    uint32_t cur_frame = 0;
-    uint32_t cur_frame_offset = 0;
+    uint32_t m_buffer_handle = 0;
+    uint8_t* m_mapped = nullptr;
+    uint32_t m_bytes_per_frame = 0;
+    uint32_t m_cur_frame = 0;
+    uint32_t m_cur_frame_offset = 0;
 };
 } // namespace drz

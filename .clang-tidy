@@ -5,15 +5,12 @@ Checks: >
     performance-*,
     modernize-use-nullptr,
     modernize-use-override,
-    readability-braces-around-statements,
-    readability-else-after-return,
     readability-identifier-naming,
-    misc-unused-parameters,
-    cppcoreguidelines-init-variables,
-    -performance-avoid-endl
+    -performance-avoid-endl,
     -bugprone-easily-swappable-parameters
 
-HeaderFilterRegex: '^(src|include)/.*'
+HeaderFilterRegex: '.*/(src|include|demo)/.*'
+ExcludeHeaderFilterRegex: '.*/vendor/.*'
 WarningsAsErrors: ''
 
 CheckOptions:
@@ -28,13 +25,35 @@ CheckOptions:
   - key: readability-identifier-naming.TemplateParameterCase
     value: CamelCase
   - key: readability-identifier-naming.FunctionCase
-    value: lower_case
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
   - key: readability-identifier-naming.VariableCase
     value: lower_case
+  - key: readability-identifier-naming.ConstantCase
+    value: aNy_CasE
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: aNy_CasE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: aNy_CasE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: aNy_CasE
+  - key: readability-identifier-naming.LocalConstantCase
+    value: aNy_CasE
+  - key: readability-identifier-naming.ClassConstantCase
+    value: aNy_CasE
   - key: readability-identifier-naming.ParameterCase
     value: lower_case
   - key: readability-identifier-naming.MemberCase
     value: lower_case
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m_
   - key: readability-identifier-naming.EnumCase
     value: CamelCase
   - key: readability-identifier-naming.EnumConstantCase
