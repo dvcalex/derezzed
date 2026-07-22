@@ -13,22 +13,18 @@ WIP toy graphics engine
 
 ## Dependencies
 - Everything is vendored under `vendor/`.
-- SDL3 is built from source and referenced as a git submodule.
 
 ### Required:
 
 - A C++20 compiler
 - [CMake](https://cmake.org/) 3.21+
-- `git` for submodule
 
 ## Build
 
-Clone with submodules or init after:
+Clone:
 
 ```bash
-git clone --recurse-submodules <repo-url>
-# or, if already cloned:
-git submodule update --init --depth 1
+git clone <repo-url>
 ```
 
 Then configure and build with the cmake preset:
