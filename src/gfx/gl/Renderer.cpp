@@ -1,10 +1,10 @@
 #include <cstdio>
 #include <cstdlib>
-#include "drz/gfx/renderer.hpp"
-#include "drz/gfx/mesh_pool.hpp"
-#include "drz/gfx/indirect_ring_buffer.hpp"
-#include "drz/util/logger.hpp"
-#include "frame_ring_buffer.hpp"
+#include "drz/gfx/Renderer.hpp"
+#include "drz/gfx/MeshPool.hpp"
+#include "drz/gfx/IndirectRingBuffer.hpp"
+#include "drz/util/Logger.hpp"
+#include "FrameRingBuffer.hpp"
 #include <fstream>
 #include <glad/gl.h>
 #include <SDL3/SDL_video.h>
@@ -23,7 +23,7 @@
 namespace
 {
 
-const char* GlDebugSourceStr(GLenum source)
+const char* gl_debug_source_str(GLenum source)
 {
     switch (source)
     {
@@ -44,7 +44,7 @@ const char* GlDebugSourceStr(GLenum source)
     }
 }
 
-const char* GlDebugTypeStr(GLenum type)
+const char* gl_debug_type_str(GLenum type)
 {
     switch (type)
     {
@@ -71,7 +71,7 @@ const char* GlDebugTypeStr(GLenum type)
     }
 }
 
-static bool DebuggerAttached()
+static bool debugger_attached()
 {
     static const bool cached = []
     {
@@ -90,13 +90,13 @@ static bool DebuggerAttached()
     return cached;
 }
 
-void GLAPIENTRY GlDebugMessage(GLenum source,
-                               GLenum type,
-                               GLuint id,
-                               GLenum severity,
-                               GLsizei /*length*/,
-                               const GLchar* message,
-                               const void* /*userParam*/)
+void GLAPIENTRY gl_debug_message(GLenum source,
+                                 GLenum type,
+                                 GLuint id,
+                                 GLenum severity,
+                                 GLsizei /*length*/,
+                                 const GLchar* message,
+                                 const void* /*userParam*/)
 {
     // Filter out NOTIFICATION logs
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
@@ -120,7 +120,7 @@ void GLAPIENTRY GlDebugMessage(GLenum source,
         break;
     }
 
-    DRZ_LOGF("[GL][{}][{}][{}] id={} {}", sev, GlDebugSourceStr(source), GlDebugTypeStr(type), id, message);
+    DRZ_LOGF("[GL][{}][{}][{}] id={} {}", sev, gl_debug_source_str(source), gl_debug_type_str(type), id, message);
     DRZ_FLUSH_LOG();
 
 #ifndef NDEBUG
@@ -128,7 +128,7 @@ void GLAPIENTRY GlDebugMessage(GLenum source,
     // Outside of a debugger, the program will exit.
     if (severity == GL_DEBUG_SEVERITY_HIGH)
     {
-        if (DebuggerAttached())
+        if (debugger_attached())
         {
             __builtin_trap(); // debugger stops on the bad GL call
         }
@@ -156,7 +156,7 @@ namespace drz
 {
 
 // api-specific window configuration
-void Renderer::ConfigureWindowAttributes()
+void Renderer::configure_window_attributes()
 {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -166,7 +166,7 @@ void Renderer::ConfigureWindowAttributes()
 #endif
 }
 
-SDL_WindowFlags Renderer::WindowFlags()
+SDL_WindowFlags Renderer::window_flags()
 {
     return SDL_WINDOW_OPENGL;
 }
@@ -192,7 +192,7 @@ Renderer::Renderer(SDL_Window* window)
     {
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(&GlDebugMessage, nullptr);
+        glDebugMessageCallback(&gl_debug_message, nullptr);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
 
@@ -220,12 +220,12 @@ Renderer::~Renderer()
     SDL_GL_DestroyContext(m_context);
 }
 
-void Renderer::UseMeshPool(MeshPool& pool)
+void Renderer::use_mesh_pool(MeshPool& pool)
 {
     m_mesh_pool = &pool;
 }
 
-PipelineStateId Renderer::RegisterState(const PipelineState& state_to_register)
+PipelineStateId Renderer::register_state(const PipelineState& state_to_register)
 {
     for (size_t i = 0; i < m_states.size(); ++i)
     {
@@ -240,13 +240,13 @@ PipelineStateId Renderer::RegisterState(const PipelineState& state_to_register)
     return static_cast<PipelineStateId>(m_states.size() - 1);
 }
 
-DrawDataSlot Renderer::AllocateDrawData(uint32_t bytes, uint32_t align)
+DrawDataSlot Renderer::allocate_draw_data(uint32_t bytes, uint32_t align)
 {
-    auto slot = m_frame_ring_buffer->Allocate(bytes, align);
+    auto slot = m_frame_ring_buffer->allocate(bytes, align);
     return {slot.ptr, slot.offset, slot.bytes};
 }
 
-void Renderer::Submit(SortKey key, const DrawPacket& packet)
+void Renderer::submit(SortKey key, const DrawPacket& packet)
 {
     // append draw packet and sort key
     m_sort_keys.push_back(key);                                      // add draw's sort key
@@ -255,16 +255,16 @@ void Renderer::Submit(SortKey key, const DrawPacket& packet)
     ++m_frame_stats.submits;
 }
 
-void Renderer::Flush()
+void Renderer::flush()
 {
     auto t0 = std::chrono::steady_clock::now(); // starting time
 
     assert(m_mesh_pool && "Renderer::flush called before use_mesh_pool");
-    m_mesh_pool->Bind();            // one-time vao bind for mesh pool
-    m_indirect_ring_buffer->Bind(); // one-time bind for indirect draw commands buffer
+    m_mesh_pool->bind();            // one-time vao bind for mesh pool
+    m_indirect_ring_buffer->bind(); // one-time bind for indirect draw commands buffer
 
     // Bind whole ssbo once for the frame
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_frame_ring_buffer->Handle());
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_frame_ring_buffer->handle());
     ++m_frame_stats.ssbo_binds;
 
     // Sort the (key, draw index) pairs by key.
@@ -298,13 +298,13 @@ void Renderer::Flush()
         }
 
         auto alloc =
-            m_indirect_ring_buffer->Allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
+            m_indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
         auto* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
 
         for (size_t i = 0; i < run_count; ++i)
         {
             const DrawPacket& packet = m_draws[m_draw_indices[m_perm[run_start + i]]];
-            const MeshSlice mesh = m_mesh_pool->Slice(packet.mesh);
+            const MeshSlice mesh = m_mesh_pool->slice(packet.mesh);
 
             uint32_t base_instance = 0;
             if (packet.draw_data_bytes > 0)
@@ -336,19 +336,19 @@ void Renderer::Flush()
     m_draws.clear();
 
     // rotate to next frame's region/frame and reset it
-    m_frame_ring_buffer->NextFrame();
-    m_indirect_ring_buffer->NextFrame();
+    m_frame_ring_buffer->next_frame();
+    m_indirect_ring_buffer->next_frame();
 
     auto t1 = std::chrono::steady_clock::now(); // ending time
     m_frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
 }
 
-void Renderer::SetViewport(int width, int height)
+void Renderer::set_viewport(int width, int height)
 {
     glViewport(0, 0, width, height);
 }
 
-void Renderer::Clear(float r, float g, float b, float a)
+void Renderer::clear(float r, float g, float b, float a)
 {
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

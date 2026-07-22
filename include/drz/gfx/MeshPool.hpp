@@ -41,9 +41,9 @@ public:
     MeshPool(MeshPool&&) = delete;
     MeshPool& operator=(MeshPool&&) = delete;
 
-    MeshHandle Upload(const MeshDesc& desc);
-    MeshSlice Slice(MeshHandle h) const;
-    void Bind(); // binds the pool's vertex layout / vao
+    MeshHandle upload(const MeshDesc& desc);
+    MeshSlice slice(MeshHandle h) const;
+    void bind(); // binds the pool's vertex layout / vao
 
 private:
     uint32_t m_vertex_layout_handle = 0;

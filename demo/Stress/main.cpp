@@ -3,11 +3,11 @@
 #include <SDL3/SDL_filesystem.h>
 #include <cstddef>
 #include <cstdint>
-#include "drz/core/engine.hpp"
-#include "drz/core/app.hpp"
-#include "drz/gfx/renderer.hpp"
-#include "drz/gfx/shader.hpp"
-#include "drz/gfx/mesh_pool.hpp"
+#include "drz/core/Engine.hpp"
+#include "drz/core/App.hpp"
+#include "drz/gfx/Renderer.hpp"
+#include "drz/gfx/Shader.hpp"
+#include "drz/gfx/MeshPool.hpp"
 
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-static std::string ResPath(const std::string& relative)
+static std::string res_path(const std::string& relative)
 {
     const char* base = SDL_GetBasePath();
     return std::string(base) + "res/" + relative;
@@ -53,7 +53,7 @@ private:
     std::vector<uint32_t> m_shader_idx;
 
 public:
-    void Init() override
+    void init() override
     {
         m_pool.emplace(64, 64);
 
@@ -83,16 +83,16 @@ public:
         };
         constexpr uint32_t indices[] = {0, 1, 2, 2, 3, 0};
 
-        m_quad = m_pool->Upload({
+        m_quad = m_pool->upload({
             .positions = positions,
             .uvs = uvs,
             .indices = indices,
         });
 
         m_shaders.reserve(3);
-        m_shaders.emplace_back(ResPath("shaders/quad.vert"), ResPath("shaders/solid.frag"));
-        m_shaders.emplace_back(ResPath("shaders/quad.vert"), ResPath("shaders/checker.frag"));
-        m_shaders.emplace_back(ResPath("shaders/quad.vert"), ResPath("shaders/pulse.frag"));
+        m_shaders.emplace_back(res_path("shaders/quad.vert"), res_path("shaders/solid.frag"));
+        m_shaders.emplace_back(res_path("shaders/quad.vert"), res_path("shaders/checker.frag"));
+        m_shaders.emplace_back(res_path("shaders/quad.vert"), res_path("shaders/pulse.frag"));
 
         // Deterministic scene rng so numbers compare across runs.
         std::mt19937 rng(0xC0FFEEu);
@@ -114,35 +114,35 @@ public:
         }
     }
 
-    void HandleEvent(const SDL_Event&) override {}
-    void Update(float, double) override {}
+    void handle_event(const SDL_Event&) override {}
+    void update(float, double) override {}
 
-    void Render(drz::Renderer& renderer) override
+    void render(drz::Renderer& renderer) override
     {
         if (!m_registered)
         {
             for (size_t s = 0; s < m_shaders.size(); ++s)
             {
-                m_pipelines[s] = renderer.RegisterState({.shader = m_shaders[s].Handle()});
+                m_pipelines[s] = renderer.register_state({.shader = m_shaders[s].handle()});
             }
-            renderer.UseMeshPool(*m_pool);
+            renderer.use_mesh_pool(*m_pool);
             m_registered = true;
         }
 
-        renderer.Clear(0.05f, 0.05f, 0.08f, 1.0f);
+        renderer.clear(0.05f, 0.05f, 0.08f, 1.0f);
 
         for (size_t i = 0; i < quad_count; ++i)
         {
             drz::PipelineStateId pid = m_pipelines[m_shader_idx[i]];
 
-            auto [offset, bytes] = renderer.PushDrawData(PerDraw {
+            auto [offset, bytes] = renderer.push_draw_data(PerDraw {
                 .offset = m_offsets[i],
                 .scale = m_scales[i],
                 ._pad = 0.0f,
                 .tint = m_tints[i],
             });
 
-            renderer.Submit(drz::GenSortKey(0, pid),
+            renderer.submit(drz::gen_sort_key(0, pid),
                             {
                                 .state_id = pid,
                                 .mesh = m_quad,
@@ -153,7 +153,7 @@ public:
     }
 };
 
-drz::App* CreateApp()
+drz::App* create_app()
 {
     return new StressApp();
 }

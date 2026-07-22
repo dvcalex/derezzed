@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drz/gfx/renderer.hpp"
+#include "drz/gfx/Renderer.hpp"
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_video.h>
@@ -19,11 +19,11 @@ public:
     Engine(int width, int height, std::string_view title);
     ~Engine();
 
-    void Tick();
-    SDL_AppResult HandleEvent(const SDL_Event& event);
-    void SetTitle(std::string_view);
-    std::pair<int, int> FramebufferSize() const;
-    void RequestQuit();
+    void tick();
+    SDL_AppResult handle_event(const SDL_Event& event);
+    void set_title(std::string_view);
+    std::pair<int, int> framebuffer_size() const;
+    void request_quit();
 
 private:
     SDL_Window* m_window = nullptr;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drz/gfx/mesh_pool.hpp"
+#include "drz/gfx/MeshPool.hpp"
 #include <SDL3/SDL_video.h>
 #include <vector>
 #include <cstdint>
@@ -48,7 +48,7 @@ struct DrawPacket
     // TODO: instance count, base vertex, base instance, ssbo offset
 };
 
-inline SortKey GenSortKey(uint8_t pass, PipelineStateId state, uint32_t depth = 0)
+inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth = 0)
 {
     return (uint64_t(pass) << 56) | ((uint64_t(state) & 0xFFFFFFull) << 32) | uint64_t(depth);
 }
@@ -58,8 +58,8 @@ class Renderer
 public:
     // For implementing graphics api-specific setup called by Engine before window creation.
     // ex. Lets the renderer configure SDL/GL attributes in backend.
-    static void ConfigureWindowAttributes();
-    static SDL_WindowFlags WindowFlags();
+    static void configure_window_attributes();
+    static SDL_WindowFlags window_flags();
 
     Renderer(SDL_Window* window);
     ~Renderer();
@@ -68,24 +68,24 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void UseMeshPool(MeshPool& pool);
-    PipelineStateId RegisterState(const PipelineState& state);
-    DrawDataSlot AllocateDrawData(uint32_t bytes, uint32_t align);
-    template <typename T> std::pair<uint32_t, uint32_t> PushDrawData(const T& data)
+    void use_mesh_pool(MeshPool& pool);
+    PipelineStateId register_state(const PipelineState& state);
+    DrawDataSlot allocate_draw_data(uint32_t bytes, uint32_t align);
+    template <typename T> std::pair<uint32_t, uint32_t> push_draw_data(const T& data)
     {
-        auto slot = AllocateDrawData(sizeof(T), alignof(T));
+        auto slot = allocate_draw_data(sizeof(T), alignof(T));
         std::memcpy(slot.ptr, &data, sizeof(T));
         return {slot.offset, slot.bytes};
     }
-    void Submit(SortKey key, const DrawPacket& packet);
-    void Flush();                            // Flush current draw commands buffer and make draw calls
-    void SetViewport(int width, int height); // called by Engine on window resize
-    void Clear(float r, float g, float b, float a);
-    void ResetFrameStats()
+    void submit(SortKey key, const DrawPacket& packet);
+    void flush();                             // Flush current draw commands buffer and make draw calls
+    void set_viewport(int width, int height); // called by Engine on window resize
+    void clear(float r, float g, float b, float a);
+    void reset_frame_stats()
     {
         m_frame_stats = {};
     }
-    const FrameStats& LastFrameStats() const
+    const FrameStats& last_frame_stats() const
     {
         return m_frame_stats;
     }

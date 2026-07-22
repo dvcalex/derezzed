@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drz/util/bump_allocator.hpp"
+#include "drz/util/BumpAllocator.hpp"
 #include <glad/gl.h>
 #include <array>
 #include <cstdint>
@@ -26,9 +26,9 @@ public:
     FrameRingBuffer(const FrameRingBuffer&) = delete;
     FrameRingBuffer& operator=(const FrameRingBuffer&) = delete;
 
-    Slot Allocate(size_t bytes, size_t align);
-    void NextFrame(); // rotates to next region, resets it
-    GLuint Handle() const
+    Slot allocate(size_t bytes, size_t align);
+    void next_frame(); // rotates to next region, resets it
+    GLuint handle() const
     {
         return m_ssbo;
     }

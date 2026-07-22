@@ -25,9 +25,11 @@ CheckOptions:
   - key: readability-identifier-naming.TemplateParameterCase
     value: CamelCase
   - key: readability-identifier-naming.FunctionCase
-    value: CamelCase
+    value: lower_case
   - key: readability-identifier-naming.MethodCase
-    value: CamelCase
+    value: lower_case
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
   - key: readability-identifier-naming.VariableCase
     value: lower_case
   - key: readability-identifier-naming.ConstantCase

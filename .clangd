@@ -1,24 +1,2 @@
 CompileFlags:
   CompilationDatabase: build
-
-  Add: [-std=c++26]
-
-Diagnostics:
-  ClangTidy: {}
-
-  UnusedIncludes: Strict
-  
-  MissingIncludes: None
-
-  Suppress:
-    - "pp_file_not_found"
-
-Completion:
-  AllScopes: Yes
-
-InlayHints:
-  DeducedTypes: Yes
-  ParameterNames: Yes
-
-Hover:
-  ShowAKA: Yes

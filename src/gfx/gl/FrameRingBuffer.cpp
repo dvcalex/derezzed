@@ -1,5 +1,5 @@
-#include "frame_ring_buffer.hpp"
-#include "drz/util/bump_allocator.hpp"
+#include "FrameRingBuffer.hpp"
+#include "drz/util/BumpAllocator.hpp"
 #include <glad/gl.h>
 #include <stdexcept>
 
@@ -40,10 +40,10 @@ FrameRingBuffer::~FrameRingBuffer()
     }
 }
 
-FrameRingBuffer::Slot FrameRingBuffer::Allocate(size_t bytes, size_t align)
+FrameRingBuffer::Slot FrameRingBuffer::allocate(size_t bytes, size_t align)
 {
     size_t effective_align = std::max(align, m_ssbo_align);
-    std::byte* ptr = m_regions[m_current].Allocate(bytes, effective_align);
+    std::byte* ptr = m_regions[m_current].allocate(bytes, effective_align);
     if (!ptr)
     {
         throw std::runtime_error("FrameRingBuffer region overflow");
@@ -52,10 +52,10 @@ FrameRingBuffer::Slot FrameRingBuffer::Allocate(size_t bytes, size_t align)
     return {ptr, offset, static_cast<uint32_t>(bytes)};
 }
 
-void FrameRingBuffer::NextFrame()
+void FrameRingBuffer::next_frame()
 {
     m_current = (m_current + 1) % REGIONS;
-    m_regions[m_current].Reset();
+    m_regions[m_current].reset();
 }
 
 } // namespace drz

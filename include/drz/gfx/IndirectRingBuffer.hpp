@@ -15,17 +15,17 @@ public:
     IndirectRingBuffer(IndirectRingBuffer&&) = delete;
     IndirectRingBuffer& operator=(IndirectRingBuffer&&) = delete;
 
-    void NextFrame(); // advance to next sub-region, reset bump cursor
+    void next_frame(); // advance to next sub-region, reset bump cursor
 
     struct Allocation
     {
         void* ptr; // CPU writable
         uint32_t byte_offset;
     };
-    Allocation Allocate(uint32_t bytes);
+    Allocation allocate(uint32_t bytes);
 
-    uint32_t Handle() const;
-    void Bind() const;
+    uint32_t handle() const;
+    void bind() const;
 
 private:
     static constexpr uint32_t NUM_FRAMES = 3; // triple buffered

@@ -1,4 +1,4 @@
-#include "drz/util/logger.hpp"
+#include "drz/util/Logger.hpp"
 #include <SDL3/SDL_log.h>
 #include <queue>
 
@@ -9,12 +9,12 @@ namespace
 std::queue<std::string> log_queue;
 }
 
-void Log(const std::string& message)
+void log(const std::string& message)
 {
     log_queue.push(message);
 }
 
-void FlushLog()
+void flush_log()
 {
     while (!log_queue.empty())
     {

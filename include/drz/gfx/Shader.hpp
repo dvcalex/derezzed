@@ -24,15 +24,15 @@ public:
     Shader& operator=(Shader&& other) noexcept;
 
     // Uniform setters
-    void SetUniform(const std::string& name, int value);
-    void SetUniform(const std::string& name, float value);
-    void SetUniform(const std::string& name, const glm::vec2& value);
-    void SetUniform(const std::string& name, const glm::vec3& value);
-    void SetUniform(const std::string& name, const glm::vec4& value);
-    void SetUniform(const std::string& name, const glm::mat4& value);
+    void set_uniform(const std::string& name, int value);
+    void set_uniform(const std::string& name, float value);
+    void set_uniform(const std::string& name, const glm::vec2& value);
+    void set_uniform(const std::string& name, const glm::vec3& value);
+    void set_uniform(const std::string& name, const glm::vec4& value);
+    void set_uniform(const std::string& name, const glm::mat4& value);
 
     // Get program handle for draw calls
-    uint32_t Handle() const
+    uint32_t handle() const
     {
         return m_program_id;
     }
@@ -41,7 +41,7 @@ private:
     uint32_t m_program_id = 0;
     std::unordered_map<std::string, int32_t> m_uniform_location_cache;
 
-    int32_t GetUniformLocation(const std::string& name);
+    int32_t get_uniform_location(const std::string& name);
 };
 
 } // namespace drz

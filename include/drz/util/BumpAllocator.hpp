@@ -14,7 +14,7 @@ public:
     BumpAllocator(std::byte* base, size_t capacity) : m_base(base), m_capacity(capacity) {}
 
     // Returns nullptr if request doesn't fit
-    std::byte* Allocate(size_t bytes, size_t align)
+    std::byte* allocate(size_t bytes, size_t align)
     {
         // round head up to the nearest multiple of align (idk how this works really)
         // Should we enforce align to be a power of 2?
@@ -27,15 +27,15 @@ public:
         m_head = aligned_head + bytes;
         return ptr;
     }
-    void Reset()
+    void reset()
     {
         m_head = 0;
     }
-    size_t BytesUsed() const
+    size_t bytes_used() const
     {
         return m_head;
     }
-    size_t BytesCapacity() const
+    size_t bytes_capacity() const
     {
         return m_capacity;
     }

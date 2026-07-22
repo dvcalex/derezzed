@@ -51,7 +51,7 @@ Each demo executable is placed in `build/bin/`, with its `res/` copied next to i
 ## Run
 
 ```bash
-./build/bin/hello
+./build/bin/Hello/Hello
 ```
 
 ## Demos
@@ -64,9 +64,9 @@ Implement `drz::App` and provide a `create_app()` factory:
 
 *psuedo code*
 ```cpp
-#include <drz/core/engine.hpp>
-#include <drz/core/app.hpp>
-#include <drz/gfx/renderer.hpp>
+#include <drz/core/Engine.hpp>
+#include <drz/core/App.hpp>
+#include <drz/gfx/Renderer.hpp>
 
 #include <iostream>
 

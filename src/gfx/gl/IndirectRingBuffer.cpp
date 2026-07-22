@@ -1,7 +1,7 @@
 #include <glad/gl.h>
 #include <cassert>
 #include <cstdint>
-#include "drz/gfx/indirect_ring_buffer.hpp"
+#include "drz/gfx/IndirectRingBuffer.hpp"
 #include <stdexcept>
 
 namespace drz
@@ -36,13 +36,13 @@ IndirectRingBuffer::~IndirectRingBuffer()
     }
 }
 
-void IndirectRingBuffer::NextFrame()
+void IndirectRingBuffer::next_frame()
 {
     m_cur_frame = (m_cur_frame + 1) % NUM_FRAMES;
     m_cur_frame_offset = 0; // reset bump cursor
 }
 
-IndirectRingBuffer::Allocation IndirectRingBuffer::Allocate(uint32_t bytes)
+IndirectRingBuffer::Allocation IndirectRingBuffer::allocate(uint32_t bytes)
 {
     assert(m_cur_frame_offset + bytes <= m_bytes_per_frame && "indirect ring overflow");
     uint32_t frame_base = m_cur_frame * m_bytes_per_frame;
@@ -54,12 +54,12 @@ IndirectRingBuffer::Allocation IndirectRingBuffer::Allocate(uint32_t bytes)
     return a;
 }
 
-uint32_t IndirectRingBuffer::Handle() const
+uint32_t IndirectRingBuffer::handle() const
 {
     return m_buffer_handle;
 }
 
-void IndirectRingBuffer::Bind() const
+void IndirectRingBuffer::bind() const
 {
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_buffer_handle);
 }

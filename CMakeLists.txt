@@ -20,13 +20,13 @@ add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
 
 # Build engine as a static library
 add_library(${PROJECT_NAME} STATIC
-    src/core/engine.cpp
-    src/util/logger.cpp
-    src/gfx/gl/shader.cpp
-    src/gfx/gl/renderer.cpp
-    src/gfx/gl/frame_ring_buffer.cpp
-    src/gfx/gl/mesh_pool.cpp
-    src/gfx/gl/indirect_ring_buffer.cpp
+    src/core/Engine.cpp
+    src/util/Logger.cpp
+    src/gfx/gl/Shader.cpp
+    src/gfx/gl/Renderer.cpp
+    src/gfx/gl/FrameRingBuffer.cpp
+    src/gfx/gl/MeshPool.cpp
+    src/gfx/gl/IndirectRingBuffer.cpp
 
     vendor/glad/src/gl.c
 )
@@ -68,6 +68,6 @@ function(drz_add_demo name)
 endfunction()
 
 # Demos
-foreach(demo hello matrix-rain stress)
+foreach(demo Hello MatrixRain Stress)
   drz_add_demo(${demo})
 endforeach()

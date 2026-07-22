@@ -1,5 +1,5 @@
 #include <cstdint>
-#include "drz/gfx/mesh_pool.hpp"
+#include "drz/gfx/MeshPool.hpp"
 
 #include <glad/gl.h>
 
@@ -54,7 +54,7 @@ MeshPool::~MeshPool()
     glDeleteBuffers(1, &m_index_buffer_handle);
 }
 
-MeshHandle MeshPool::Upload(const MeshDesc& desc)
+MeshHandle MeshPool::upload(const MeshDesc& desc)
 {
     const size_t vert_count = desc.positions.size() / 3;
     const size_t index_count = desc.indices.size();
@@ -110,12 +110,12 @@ MeshHandle MeshPool::Upload(const MeshDesc& desc)
     return MeshHandle {static_cast<uint32_t>(m_slices.size())};
 }
 
-MeshSlice MeshPool::Slice(MeshHandle h) const
+MeshSlice MeshPool::slice(MeshHandle h) const
 {
     return m_slices[h.id - 1];
 }
 
-void MeshPool::Bind()
+void MeshPool::bind()
 {
     glBindVertexArray(m_vertex_layout_handle);
 }

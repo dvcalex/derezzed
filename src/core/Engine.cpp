@@ -7,15 +7,15 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_main.h>
 
-#include "drz/core/engine.hpp"
-#include "drz/core/app.hpp"
-#include "drz/util/logger.hpp"
+#include "drz/core/Engine.hpp"
+#include "drz/core/App.hpp"
+#include "drz/util/Logger.hpp"
 
 #include <stdexcept>
 #include <string>
 #include <memory>
 
-extern drz::App* CreateApp(); // user provides impl
+extern drz::App* create_app(); // user provides impl
 
 namespace drz
 {
@@ -27,10 +27,10 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title)
     }
 
     // Let the renderer backend configure SDL attributes before window creation.
-    Renderer::ConfigureWindowAttributes();
+    Renderer::configure_window_attributes();
 
     std::string title_str(title);
-    m_window = SDL_CreateWindow(title_str.c_str(), initial_width, initial_height, Renderer::WindowFlags());
+    m_window = SDL_CreateWindow(title_str.c_str(), initial_width, initial_height, Renderer::window_flags());
     if (!m_window)
     {
         throw std::runtime_error(std::string("SDL_CreateWindow: ") + SDL_GetError());
@@ -45,14 +45,14 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title)
 
     // ### Init App stuff ###
 
-    m_app.reset(CreateApp());
+    m_app.reset(create_app());
     if (!m_app)
     {
         throw std::runtime_error("create_app() returned nullptr");
     }
 
     m_app->m_engine = this; // set app engine BEFORE WE INIT APP
-    m_app->Init();
+    m_app->init();
 
     m_last_time = SDL_GetTicks();
 }
@@ -65,23 +65,23 @@ Engine::~Engine()
     SDL_Quit();                  // Finally, kill SDL
 }
 
-void Engine::Tick()
+void Engine::tick()
 {
-    m_renderer->ResetFrameStats();
+    m_renderer->reset_frame_stats();
 
     uint64_t now_time = SDL_GetTicks();            // returns current time in ms
     float dt = (now_time - m_last_time) / 1000.0f; // get delta, then convert to seconds
     double elapsed = now_time / 1000.0;
     m_last_time = now_time;
 
-    m_app->Update(dt, elapsed); // update with app's update func
-    m_app->Render(*m_renderer); // render with app's render func, pass in renderer for app to submit draw calls
-    m_renderer->Flush();        // flush draw commands to make draw calls
+    m_app->update(dt, elapsed); // update with app's update func
+    m_app->render(*m_renderer); // render with app's render func, pass in renderer for app to submit draw calls
+    m_renderer->flush();        // flush draw commands to make draw calls
 
     uint64_t now_ms = SDL_GetTicks();
     if (now_ms - m_last_stats_log_ms >= 250)
     {
-        const auto& s = m_renderer->LastFrameStats();
+        const auto& s = m_renderer->last_frame_stats();
         DRZ_LOGF("[stats] submits={} draws={} prog_binds={} ssbo_binds={} cpu={:.2f}ms",
                  s.submits,
                  s.draw_calls,
@@ -95,7 +95,7 @@ void Engine::Tick()
     SDL_GL_SwapWindow(m_window); // Swap render buffers
 }
 
-SDL_AppResult Engine::HandleEvent(const SDL_Event& event)
+SDL_AppResult Engine::handle_event(const SDL_Event& event)
 {
     // Handle all engine-level events
     switch (event.type)
@@ -105,7 +105,7 @@ SDL_AppResult Engine::HandleEvent(const SDL_Event& event)
         int w = 0;
         int h = 0;
         SDL_GetWindowSizeInPixels(m_window, &w, &h);
-        m_renderer->SetViewport(w, h); // update viewport to match new window size
+        m_renderer->set_viewport(w, h); // update viewport to match new window size
         m_width = w;
         m_height = h;
         break;
@@ -115,7 +115,7 @@ SDL_AppResult Engine::HandleEvent(const SDL_Event& event)
     }
 
     // Forward to user App if they want to handle more stuff
-    m_app->HandleEvent(event);
+    m_app->handle_event(event);
 
     // Handle SDL app quit event (do this at the end so that events reach Engine and App)
     if (event.type == SDL_EVENT_QUIT)
@@ -130,17 +130,17 @@ SDL_AppResult Engine::HandleEvent(const SDL_Event& event)
     return SDL_APP_CONTINUE;
 }
 
-void Engine::SetTitle(std::string_view title)
+void Engine::set_title(std::string_view title)
 {
     SDL_SetWindowTitle(m_window, std::string(title).c_str());
 }
 
-std::pair<int, int> Engine::FramebufferSize() const
+std::pair<int, int> Engine::framebuffer_size() const
 {
     return {m_width, m_height};
 }
 
-void Engine::RequestQuit()
+void Engine::request_quit()
 {
     m_quit_requested = true;
 }
@@ -172,7 +172,7 @@ static constexpr const char* sdl_event_type_to_string(Uint32 type) noexcept {
 }
 */
 
-static constexpr const char* SdlAppResultToString(SDL_AppResult result) noexcept
+static constexpr const char* sdl_app_result_to_string(SDL_AppResult result) noexcept
 {
     switch (result)
     {
@@ -212,18 +212,18 @@ extern "C"
     SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
     {
         // Get engine and return back whatever it returns after handling events
-        return static_cast<drz::Engine*>(appstate)->HandleEvent(*event);
+        return static_cast<drz::Engine*>(appstate)->handle_event(*event);
     }
 
     SDL_AppResult SDL_AppIterate(void* appstate)
     {
-        static_cast<drz::Engine*>(appstate)->Tick(); // tick once
+        static_cast<drz::Engine*>(appstate)->tick(); // tick once
         return SDL_APP_CONTINUE;
     }
 
     void SDL_AppQuit(void* appstate, SDL_AppResult result)
     {
-        SDL_Log("Quitting SDL App with result: %s", drz::SdlAppResultToString(result));
+        SDL_Log("Quitting SDL App with result: %s", drz::sdl_app_result_to_string(result));
         delete static_cast<drz::Engine*>(appstate); // cleanup engine
     }
 }
