@@ -16,7 +16,7 @@ WIP toy graphics engine
 
 ### Required:
 
-- A C++20 compiler
+- A C++23 compiler
 - [CMake](https://cmake.org/) 3.21+
 
 ## Build
