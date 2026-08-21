@@ -19,10 +19,17 @@ public:
     Engine(int width, int height, std::string_view title);
     ~Engine();
 
+    /**
+     * @brief Handles ticking the engine forward one time.
+     */
     void tick();
+
     SDL_AppResult handle_event(const SDL_Event& event);
-    void set_title(std::string_view);
+
+    void set_title(std::string_view title);
+
     std::pair<int, int> framebuffer_size() const;
+
     void request_quit();
 
 private:
@@ -31,7 +38,7 @@ private:
     int m_height = 0;
     uint64_t m_last_stats_log_ms = 0;
     const bool* m_keys_state = nullptr; // SDL keyboard state array. Use SDL_SCANCODE_<key> to index array.
-    uint64_t m_last_time = 0;
+    uint64_t m_last_time_ms = 0;
     bool m_quit_requested = false;
 
     std::unique_ptr<App> m_app;

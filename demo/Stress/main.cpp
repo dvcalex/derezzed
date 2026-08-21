@@ -1,8 +1,3 @@
-#include <glm/ext/vector_float2.hpp>
-#include <glm/ext/vector_float4.hpp>
-#include <SDL3/SDL_filesystem.h>
-#include <cstddef>
-#include <cstdint>
 #include "drz/core/Engine.hpp"
 #include "drz/core/App.hpp"
 #include "drz/gfx/Renderer.hpp"
@@ -10,9 +5,14 @@
 #include "drz/gfx/MeshPool.hpp"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_filesystem.h>
 #include <glm/glm.hpp>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <random>
 #include <string>

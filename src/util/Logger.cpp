@@ -19,9 +19,8 @@ void flush_log()
 {
     while (!log_buffer.empty())
     {
-        // TODO: Log into another stream if we want to log into a file or something, but for now just log to SDL's
-        // logging system
-        SDL_Log("%s", log_buffer.front().c_str());
+        // TODO: Log into another stream if we want to log into a file or something
+        SDL_Log("%s", log_buffer.front().c_str()); // flush to SDL log
         log_buffer.clear();
     }
 }

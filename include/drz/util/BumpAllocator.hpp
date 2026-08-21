@@ -1,23 +1,32 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 
 namespace drz
 {
 
-// linear allocator that can only allocate, bump, and reset. No freeing individual allocations.
+/**
+ * @brief Linear allocator that can only allocate, bump, and reset. Cannot freeing individual allocations, just entire
+ * buffer.
+ */
 class BumpAllocator
 {
 public:
-    BumpAllocator() = default;
-    BumpAllocator(std::byte* base, size_t capacity) : m_base(base), m_capacity(capacity) {}
+    constexpr BumpAllocator() noexcept = default;
 
-    // Returns nullptr if request doesn't fit
-    std::byte* allocate(size_t bytes, size_t align)
+    constexpr BumpAllocator(std::byte* base, size_t capacity) noexcept : m_base(base), m_capacity(capacity) {}
+
+    /**
+     * @brief Calculates new head position based on size of allocation, rounded to the next multiple (and power of 2) of
+     * align.
+     *
+     * @param bytes Size in bytes to allocate.
+     * @param align Byte alignment for the new head ptr. ASSUMES A POWER OF 2!
+     * @return std::byte* Returns nullptr if request doesn't fit.
+     */
+    constexpr std::byte* allocate(size_t bytes, size_t align) noexcept
     {
-        // round head up to the nearest multiple of align (idk how this works really)
-        // Should we enforce align to be a power of 2?
+        // round head up to the next multiple of align
         size_t aligned_head = (m_head + align - 1) & ~(align - 1);
         if (aligned_head + bytes > m_capacity)
         {
@@ -27,15 +36,21 @@ public:
         m_head = aligned_head + bytes;
         return ptr;
     }
-    void reset()
+
+    /**
+     * @brief Reset
+     */
+    constexpr void reset() noexcept
     {
         m_head = 0;
     }
-    size_t bytes_used() const
+
+    constexpr size_t bytes_used() const noexcept
     {
         return m_head;
     }
-    size_t bytes_capacity() const
+
+    constexpr size_t bytes_capacity() const noexcept
     {
         return m_capacity;
     }

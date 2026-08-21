@@ -29,7 +29,7 @@ add_library(${PROJECT_NAME} STATIC
     src/gfx/gl/IndirectRingBuffer.cpp
 
     vendor/glad/src/gl.c
-)
+) 
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     include

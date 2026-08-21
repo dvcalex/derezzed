@@ -1,7 +1,9 @@
+#include "drz/gfx/IndirectRingBuffer.hpp"
+
 #include <glad/gl.h>
+
 #include <cassert>
 #include <cstdint>
-#include "drz/gfx/IndirectRingBuffer.hpp"
 #include <stdexcept>
 
 namespace drz

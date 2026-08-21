@@ -8,7 +8,9 @@
 namespace drz
 {
 
-// Buffer that manages the "ring" of N frames for rendering
+/**
+ * @brief Per draw data allocator for GPU consumption
+ */
 class FrameRingBuffer
 {
 public:
@@ -26,8 +28,20 @@ public:
     FrameRingBuffer(const FrameRingBuffer&) = delete;
     FrameRingBuffer& operator=(const FrameRingBuffer&) = delete;
 
+    FrameRingBuffer(FrameRingBuffer&&) = default;
+    FrameRingBuffer& operator=(FrameRingBuffer&&) = default;
+
+    /**
+     * @brief
+     *
+     * @param bytes
+     * @param align
+     * @return Slot
+     */
     Slot allocate(size_t bytes, size_t align);
+
     void next_frame(); // rotates to next region, resets it
+
     GLuint handle() const
     {
         return m_ssbo;

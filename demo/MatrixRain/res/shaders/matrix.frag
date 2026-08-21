@@ -42,6 +42,7 @@ void main()
 
     // per-column random parameters
     float speed = 0.4 + hash(c * 73.1) * 0.8;
+    speed *= 0.001;
     float phase = hash(c * 127.1);
     float trailLen = 0.3 + hash(c * 311.7) * 0.4;
 

@@ -1,4 +1,10 @@
-#define SDL_MAIN_USE_CALLBACKS
+#define SDL_MAIN_USE_CALLBACKS // must precede <SDL3/SDL_main.h>
+
+#include "drz/core/Engine.hpp"
+
+#include "drz/core/App.hpp"
+#include "drz/util/Logger.hpp"
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
@@ -7,13 +13,9 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_main.h>
 
-#include "drz/core/Engine.hpp"
-#include "drz/core/App.hpp"
-#include "drz/util/Logger.hpp"
-
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include <memory>
 
 extern drz::App* create_app(); // user provides impl
 
@@ -43,7 +45,7 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title)
 
     m_renderer = std::make_unique<Renderer>(m_window);
 
-    // ### Init App stuff ###
+    // ### Init App ###
 
     m_app.reset(create_app());
     if (!m_app)
@@ -51,10 +53,10 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title)
         throw std::runtime_error("create_app() returned nullptr");
     }
 
-    m_app->m_engine = this; // set app engine BEFORE WE INIT APP
+    m_app->m_engine = this; // set app's engine ptr before initializing app
     m_app->init();
 
-    m_last_time = SDL_GetTicks();
+    m_last_time_ms = SDL_GetTicks();
 }
 
 Engine::~Engine()
@@ -69,14 +71,17 @@ void Engine::tick()
 {
     m_renderer->reset_frame_stats();
 
-    uint64_t now_time = SDL_GetTicks();            // returns current time in ms
-    float dt = (now_time - m_last_time) / 1000.0f; // get delta, then convert to seconds
-    double elapsed = now_time / 1000.0;
-    m_last_time = now_time;
+    uint64_t now_time_ms = SDL_GetTicks(); // returns current time in ms
+    float dt_ms = now_time_ms - m_last_time_ms;
 
-    m_app->update(dt, elapsed); // update with app's update func
-    m_app->render(*m_renderer); // render with app's render func, pass in renderer for app to submit draw calls
-    m_renderer->flush();        // flush draw commands to make draw calls
+    // update with app's update func
+    m_app->update(dt_ms, now_time_ms);
+
+    // render with app's render func, pass in renderer for app to submit draw calls
+    m_app->render(*m_renderer);
+
+    // flush draw commands to make draw calls
+    m_renderer->flush();
 
     uint64_t now_ms = SDL_GetTicks();
     if (now_ms - m_last_stats_log_ms >= 250)
@@ -92,7 +97,8 @@ void Engine::tick()
         m_last_stats_log_ms = now_ms;
     }
 
-    SDL_GL_SwapWindow(m_window); // Swap render buffers
+    SDL_GL_SwapWindow(m_window);  // Swap render buffers
+    m_last_time_ms = now_time_ms; // Set last time for next iteration
 }
 
 SDL_AppResult Engine::handle_event(const SDL_Event& event)

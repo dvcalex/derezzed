@@ -1,5 +1,7 @@
 #include "FrameRingBuffer.hpp"
+
 #include "drz/util/BumpAllocator.hpp"
+
 #include <glad/gl.h>
 #include <stdexcept>
 

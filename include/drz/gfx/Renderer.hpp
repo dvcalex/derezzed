@@ -10,10 +10,6 @@
 
 namespace drz
 {
-
-class FrameRingBuffer;
-class IndirectRingBuffer;
-
 struct FrameStats
 {
     uint32_t submits = 0;    // total draw commands submitted this frame
@@ -56,12 +52,16 @@ inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth 
 class Renderer
 {
 public:
-    // For implementing graphics api-specific setup called by Engine before window creation.
-    // ex. Lets the renderer configure SDL/GL attributes in backend.
+    /**
+     * @brief For handling graphics api-specific setup called by Engine before window creation.
+     *  ex. Configure SDL/GL.
+     */
     static void configure_window_attributes();
+
     static SDL_WindowFlags window_flags();
 
     Renderer(SDL_Window* window);
+
     ~Renderer();
 
     // Delete copy
@@ -69,22 +69,34 @@ public:
     Renderer& operator=(const Renderer&) = delete;
 
     void use_mesh_pool(MeshPool& pool);
+
     PipelineStateId register_state(const PipelineState& state);
+
     DrawDataSlot allocate_draw_data(uint32_t bytes, uint32_t align);
+
     template <typename T> std::pair<uint32_t, uint32_t> push_draw_data(const T& data)
     {
         auto slot = allocate_draw_data(sizeof(T), alignof(T));
         std::memcpy(slot.ptr, &data, sizeof(T));
         return {slot.offset, slot.bytes};
     }
+
     void submit(SortKey key, const DrawPacket& packet);
-    void flush();                             // Flush current draw commands buffer and make draw calls
+
+    /**
+     * @brief Flush current draw commands buffer and make draw calls
+     */
+    void flush();
+
     void set_viewport(int width, int height); // called by Engine on window resize
+
     void clear(float r, float g, float b, float a);
+
     void reset_frame_stats()
     {
         m_frame_stats = {};
     }
+
     const FrameStats& last_frame_stats() const
     {
         return m_frame_stats;
@@ -98,10 +110,11 @@ private:
 
     std::vector<PipelineState> m_states; // states, index is PipelineStateId
 
-    std::unique_ptr<FrameRingBuffer> m_frame_ring_buffer; // manages per-frame SSBO for draw data
-    std::unique_ptr<IndirectRingBuffer> m_indirect_ring_buffer;
+    std::unique_ptr<class FrameRingBuffer> m_frame_ring_buffer; // manages per-frame SSBO for draw data
+    std::unique_ptr<class IndirectRingBuffer> m_indirect_ring_buffer;
 
-    // per-frame queues cleared in flush()
+    // ### Per-frame buffers cleared in flush() ###
+
     std::vector<SortKey> m_sort_keys;     // hot path. 8 bytes each
     std::vector<uint32_t> m_perm;         // hot path. 4 bytes each. permutation of draw_indices sorted by sort_keys
     std::vector<uint32_t> m_draw_indices; // index into draws

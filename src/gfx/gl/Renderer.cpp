@@ -1,24 +1,28 @@
-#include <cstdio>
-#include <cstdlib>
 #include "drz/gfx/Renderer.hpp"
+
 #include "drz/gfx/MeshPool.hpp"
 #include "drz/gfx/IndirectRingBuffer.hpp"
 #include "drz/util/Logger.hpp"
 #include "FrameRingBuffer.hpp"
-#include <fstream>
-#include <glad/gl.h>
+
+#include <glad/gl.h> // must precede <SDL3/SDL_opengl.h>
+
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_timer.h>
+
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <numeric>
 
 namespace
 {
@@ -148,7 +152,7 @@ struct DrawElementsIndirectCommand
     int32_t base_vertex;
     uint32_t base_instance;
 };
-static_assert(sizeof(DrawElementsIndirectCommand) == 20); // guard against accidental padding
+static_assert(sizeof(DrawElementsIndirectCommand) == 20); // guard against accidental padding in the struct
 
 } // anonymous namespace
 
