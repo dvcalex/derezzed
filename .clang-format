@@ -2,7 +2,7 @@ Language: Cpp
 BasedOnStyle: LLVM
 
 BreakBeforeBraces: Allman
-ColumnLimit: 120
+ColumnLimit: 180
 PointerAlignment: Left
 ReferenceAlignment: Left
 SortIncludes: Never

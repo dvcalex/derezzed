@@ -94,13 +94,7 @@ static bool debugger_attached()
     return cached;
 }
 
-void GLAPIENTRY gl_debug_message(GLenum source,
-                                 GLenum type,
-                                 GLuint id,
-                                 GLenum severity,
-                                 GLsizei /*length*/,
-                                 const GLchar* message,
-                                 const void* /*userParam*/)
+void GLAPIENTRY gl_debug_message(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/)
 {
     // Filter out NOTIFICATION logs
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
@@ -268,7 +262,7 @@ void Renderer::flush()
     m_indirect_ring_buffer->bind(); // one-time bind for indirect draw commands buffer
 
     // Bind whole ssbo once for the frame
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_frame_ring_buffer->handle());
+    m_frame_ring_buffer->bind();
     ++m_frame_stats.ssbo_binds;
 
     // Sort the (key, draw index) pairs by key.
@@ -301,8 +295,7 @@ void Renderer::flush()
             ++m_frame_stats.shader_binds;
         }
 
-        auto alloc =
-            m_indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
+        auto alloc = m_indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
         auto* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
 
         for (size_t i = 0; i < run_count; ++i)
@@ -325,11 +318,7 @@ void Renderer::flush()
             };
         }
 
-        glMultiDrawElementsIndirect(GL_TRIANGLES,
-                                    GL_UNSIGNED_INT,
-                                    reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)),
-                                    static_cast<GLsizei>(run_count),
-                                    0);
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)), static_cast<GLsizei>(run_count), 0);
         ++m_frame_stats.draw_calls;
 
         run_start = run_end;

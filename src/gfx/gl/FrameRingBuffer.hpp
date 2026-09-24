@@ -21,7 +21,7 @@ public:
         uint32_t bytes;  // size of the slot
     };
 
-    FrameRingBuffer(size_t per_region_bytes, size_t alignment);
+    FrameRingBuffer(size_t per_region_bytes, size_t alignment, uint32_t binding_point = 0);
     ~FrameRingBuffer();
 
     // Delete copy
@@ -40,6 +40,8 @@ public:
      */
     Slot allocate(size_t bytes, size_t align);
 
+    void bind() const;
+
     void next_frame(); // rotates to next region, resets it
 
     GLuint handle() const
@@ -54,6 +56,7 @@ private:
     std::byte* m_mapped = nullptr; // persistently mapped pointer to entire buffer
     size_t m_region_bytes;
     size_t m_current = 0;
+    uint32_t m_binding_point = 0;
     std::array<BumpAllocator, REGIONS> m_regions;
 };
 } // namespace drz

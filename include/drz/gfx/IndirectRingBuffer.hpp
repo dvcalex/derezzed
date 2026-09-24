@@ -28,7 +28,7 @@ public:
     void bind() const;
 
 private:
-    static constexpr uint32_t NUM_FRAMES = 3; // triple buffered
+    static constexpr uint32_t NUM_FRAMES = 3;
     uint32_t m_buffer_handle = 0;
     uint8_t* m_mapped = nullptr;
     uint32_t m_bytes_per_frame = 0;

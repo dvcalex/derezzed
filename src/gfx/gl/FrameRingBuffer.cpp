@@ -8,10 +8,9 @@
 namespace drz
 {
 
-FrameRingBuffer::FrameRingBuffer(size_t per_region_bytes, size_t alignment)
+FrameRingBuffer::FrameRingBuffer(size_t per_region_bytes, size_t alignment, uint32_t binding_point)
+    : m_region_bytes(per_region_bytes), m_ssbo_align(alignment), m_binding_point(binding_point)
 {
-    m_ssbo_align = alignment;
-    m_region_bytes = per_region_bytes;
     if (m_region_bytes % m_ssbo_align != 0)
     {
         throw std::runtime_error("FrameRingBuffer region size must be multiple of alignment");
@@ -53,6 +52,11 @@ FrameRingBuffer::Slot FrameRingBuffer::allocate(size_t bytes, size_t align)
     uint32_t offset = static_cast<uint32_t>(ptr - m_mapped);
     return {ptr, offset, static_cast<uint32_t>(bytes)};
 }
+
+void FrameRingBuffer::bind() const
+{
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_binding_point, m_ssbo);
+};
 
 void FrameRingBuffer::next_frame()
 {

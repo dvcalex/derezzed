@@ -14,15 +14,8 @@ IndirectRingBuffer::IndirectRingBuffer(uint32_t bytes_per_frame)
     this->m_bytes_per_frame = bytes_per_frame;
 
     glCreateBuffers(1, &m_buffer_handle);
-    glNamedBufferStorage(m_buffer_handle,
-                         bytes_per_frame * NUM_FRAMES,
-                         nullptr,
-                         GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-    m_mapped =
-        static_cast<uint8_t*>(glMapNamedBufferRange(m_buffer_handle,
-                                                    0,
-                                                    bytes_per_frame * NUM_FRAMES,
-                                                    GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
+    glNamedBufferStorage(m_buffer_handle, bytes_per_frame * NUM_FRAMES, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+    m_mapped = static_cast<uint8_t*>(glMapNamedBufferRange(m_buffer_handle, 0, bytes_per_frame * NUM_FRAMES, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
     if (!m_mapped)
     {
         throw std::runtime_error("Indirect buffer map failed");
