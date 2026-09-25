@@ -47,8 +47,7 @@ static GLuint compile_shader(GLenum type, const std::string& source)
 
         glDeleteShader(id);
 
-        throw std::runtime_error(std::string("Failed to compile ") +
-                                 (type == GL_VERTEX_SHADER ? "vertex" : "fragment") + " shader:\n" + message);
+        throw std::runtime_error(std::string("Failed to compile ") + (type == GL_VERTEX_SHADER ? "vertex" : "fragment") + " shader:\n" + message);
     }
     return id;
 }
@@ -128,8 +127,7 @@ Shader::~Shader()
     glDeleteProgram(m_program_id);
 }
 
-Shader::Shader(Shader&& other) noexcept
-    : m_program_id(other.m_program_id), m_uniform_location_cache(std::move(other.m_uniform_location_cache))
+Shader::Shader(Shader&& other) noexcept : m_program_id(other.m_program_id), m_uniform_location_cache(std::move(other.m_uniform_location_cache))
 {
     other.m_program_id = 0; // prevent gl from releasing program
 }
@@ -174,6 +172,11 @@ void Shader::set_uniform(const std::string& name, const glm::vec4& value)
 void Shader::set_uniform(const std::string& name, const glm::mat4& value)
 {
     glProgramUniformMatrix4fv(m_program_id, get_uniform_location(name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+void Shader::set_texture_slot(const std::string& name, uint32_t slot)
+{
+    glProgramUniform1i(m_program_id, get_uniform_location(name), slot);
 }
 
 } // namespace drz

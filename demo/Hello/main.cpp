@@ -3,6 +3,7 @@
 #include "drz/gfx/Renderer.hpp"
 #include "drz/gfx/Shader.hpp"
 #include "drz/gfx/MeshPool.hpp"
+#include "drz/gfx/Texture.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -50,6 +51,11 @@ public:
         });
 
         m_shader.emplace(res_path("shaders/hello.vert"), res_path("shaders/hello.frag"));
+        m_albedo_tex.emplace(res_path("cereal.png"));
+
+        uint32_t albedo_slot = 0;
+        m_shader->set_texture_slot("u_albedo", albedo_slot);
+        m_albedo_tex->bind(albedo_slot);
     }
 
     void handle_event(const SDL_Event&) override {}
@@ -72,6 +78,7 @@ private:
     std::optional<drz::MeshPool> m_pool;
     drz::MeshHandle m_triangle;
     std::optional<drz::Shader> m_shader;
+    std::optional<drz::Texture> m_albedo_tex;
 
     bool m_registered = false;
     drz::PipelineStateId m_pipeline = 0;

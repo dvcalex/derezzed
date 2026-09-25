@@ -30,6 +30,7 @@ public:
     void set_uniform(const std::string& name, const glm::vec3& value);
     void set_uniform(const std::string& name, const glm::vec4& value);
     void set_uniform(const std::string& name, const glm::mat4& value);
+    void set_texture_slot(const std::string& name, uint32_t slot);
 
     // Get program handle for draw calls
     uint32_t handle() const

@@ -46,7 +46,7 @@ struct DrawPacket
 
 inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth = 0)
 {
-    return (uint64_t(pass) << 56) | ((uint64_t(state) & 0xFFFFFFull) << 32) | uint64_t(depth);
+    return (uint64_t(pass) << 56) | ((uint64_t(state) & 0xFFFFFFull) << 32) | uint64_t(depth); // :(
 }
 
 class Renderer

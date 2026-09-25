@@ -17,6 +17,7 @@ set(SDL_STATIC  ON  CACHE BOOL "" FORCE)
 set(SDL_TEST    OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
+add_subdirectory(vendor/stb_image EXCLUDE_FROM_ALL)
 
 # Build engine as a static library
 add_library(${PROJECT_NAME} STATIC
@@ -27,6 +28,7 @@ add_library(${PROJECT_NAME} STATIC
     src/gfx/gl/FrameRingBuffer.cpp
     src/gfx/gl/MeshPool.cpp
     src/gfx/gl/IndirectRingBuffer.cpp
+    src/gfx/gl/Texture.cpp
 
     vendor/glad/src/gl.c
 ) 
@@ -42,7 +44,10 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC DRZ_BACKEND_GL)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-static)
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC  SDL3::SDL3-static
+    PRIVATE stb::image
+)
 
 function(drz_add_demo name)
   set(dir "${CMAKE_CURRENT_SOURCE_DIR}/demo/${name}")
