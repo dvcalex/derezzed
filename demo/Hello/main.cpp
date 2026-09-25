@@ -23,26 +23,9 @@ public:
     {
         m_pool.emplace(64, 64);
 
-        constexpr float positions[] = {
-            0.0f,
-            0.5f,
-            0.0f,
-            -0.5f,
-            -0.5f,
-            0.0f,
-            0.5f,
-            -0.5f,
-            0.0f,
-        };
-        constexpr float uvs[] = {
-            0.5f,
-            1.0f,
-            0.0f,
-            0.0f,
-            1.0f,
-            0.0f,
-        };
-        constexpr uint32_t indices[] = {0, 1, 2};
+        constexpr float positions[] = {0.5f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f};
+        constexpr float uvs[] = {1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+        constexpr uint32_t indices[] = {0, 1, 2, 2, 3, 0};
 
         m_triangle = m_pool->upload({
             .positions = positions,

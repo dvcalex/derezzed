@@ -9,5 +9,5 @@ out vec4 fragColor;
 void main()
 {
     vec4 sampled = texture(u_albedo, v_uv.xy);
-    fragColor = sampled * vec4(v_uv.xy, 0.0, 1.0);
+    fragColor = sampled * vec4(v_uv.xy, 1.0, 1.0);
 }
