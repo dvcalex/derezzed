@@ -3,6 +3,7 @@
 #include "drz/gfx/MeshPool.hpp"
 #include "drz/gfx/IndirectRingBuffer.hpp"
 #include "drz/util/Logger.hpp"
+#include "drz/util/DebugBreak.hpp"
 #include "FrameRingBuffer.hpp"
 
 #include <glad/gl.h> // must precede <SDL3/SDL_opengl.h>
@@ -128,7 +129,7 @@ void GLAPIENTRY gl_debug_message(GLenum source, GLenum type, GLuint id, GLenum s
     {
         if (debugger_attached())
         {
-            __builtin_trap(); // debugger stops on the bad GL call
+            DEBUG_BREAK(); // debugger stops on the bad GL call
         }
         else
         {
