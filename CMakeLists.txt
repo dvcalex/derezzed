@@ -50,27 +50,33 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 function(drz_add_demo name)
-  set(dir "${CMAKE_CURRENT_SOURCE_DIR}/demo/${name}")
+    set(dir "${CMAKE_CURRENT_SOURCE_DIR}/demo/${name}")
+    set(res_dir "${dir}/res")
 
-  add_executable(${name} "${dir}/main.cpp")
-  # Linking the engine pulls in SDL3 transitively
-  target_link_libraries(${name} PRIVATE ${PROJECT_NAME})
+    add_executable(${name} "${dir}/main.cpp")
+    target_link_libraries(${name} PRIVATE ${PROJECT_NAME})
 
-  # Private output dir keeps each demo's res/ from clobbering others
-  set(out_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}")
-  set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${out_dir}")
+    # Generator expression prevents Visual Studio from appending Debug/Release.
+    set_target_properties(${name} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY
+            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}/$<0:>"
+    )
 
-  set(res_dir "${dir}/res")
-  if(NOT IS_DIRECTORY "${res_dir}")
-    return()
-  endif()
-
-  # Symlink res/ next to the binary so SDL_GetBasePath() finds it. Falls back to a copy where symlinks error.
-  file(MAKE_DIRECTORY "${out_dir}")
-  if(NOT EXISTS "${out_dir}/res")
-    file(CREATE_LINK "${res_dir}" "${out_dir}/res" SYMBOLIC COPY_ON_ERROR)
-  endif()
+    if(IS_DIRECTORY "${res_dir}")
+        add_custom_command(
+            TARGET ${name}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -rf
+                    "$<TARGET_FILE_DIR:${name}>/res"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${res_dir}"
+                    "$<TARGET_FILE_DIR:${name}>/res"
+            COMMENT "Copying resources for ${name}"
+            VERBATIM
+        )
+    endif()
 endfunction()
+
 
 # Demos
 foreach(demo Hello MatrixRain Stress)
