@@ -1,6 +1,8 @@
 #pragma once
 
 #include "drz/gfx/MeshPool.hpp"
+#include "drz/gfx/FrameRingBuffer.hpp"
+#include "drz/gfx/IndirectRingBuffer.hpp"
 #include <SDL3/SDL_video.h>
 #include <vector>
 #include <cstdint>
@@ -110,8 +112,9 @@ private:
 
     std::vector<PipelineState> m_states; // states, index is PipelineStateId
 
-    std::unique_ptr<class FrameRingBuffer> m_frame_ring_buffer; // manages per-frame SSBO for draw data
-    std::unique_ptr<class IndirectRingBuffer> m_indirect_ring_buffer;
+    std::unique_ptr<FrameRingBuffer> m_frame_ring_buffer; // manages per-frame SSBO for draw data
+
+    std::unique_ptr<IndirectRingBuffer> m_indirect_ring_buffer;
 
     // ### Per-frame buffers cleared in flush() ###
 

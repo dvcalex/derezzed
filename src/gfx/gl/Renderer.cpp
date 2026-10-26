@@ -4,7 +4,7 @@
 #include "drz/gfx/IndirectRingBuffer.hpp"
 #include "drz/util/Logger.hpp"
 #include "drz/util/DebugBreak.hpp"
-#include "FrameRingBuffer.hpp"
+#include "drz/gfx/FrameRingBuffer.hpp"
 
 #include <glad/gl.h> // must precede <SDL3/SDL_opengl.h>
 

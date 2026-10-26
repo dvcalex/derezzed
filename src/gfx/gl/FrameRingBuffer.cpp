@@ -1,4 +1,4 @@
-#include "FrameRingBuffer.hpp"
+#include "drz/gfx/FrameRingBuffer.hpp"
 
 #include "drz/util/BumpAllocator.hpp"
 
