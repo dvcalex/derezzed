@@ -1,8 +1,8 @@
 #pragma once
 
 #include "drz/util/BumpAllocator.hpp"
-#include <glad/gl.h>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace drz
@@ -44,14 +44,14 @@ public:
 
     void next_frame(); // rotates to next region, resets it
 
-    GLuint handle() const
+    uint32_t handle() const
     {
         return m_ssbo;
     }
 
 private:
     static constexpr size_t REGIONS = 3;
-    GLuint m_ssbo = 0;
+    uint32_t m_ssbo = 0;
     size_t m_ssbo_align = 0;
     std::byte* m_mapped = nullptr; // persistently mapped pointer to entire buffer
     size_t m_region_bytes;
