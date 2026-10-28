@@ -16,8 +16,8 @@ struct FrameStats
 {
     uint32_t submits = 0;    // total draw commands submitted this frame
     uint32_t draw_calls = 0; // actual glDraws issues
-    uint32_t shader_binds = 0;
     uint32_t ssbo_binds = 0;
+    uint32_t state_changes = 0;
     float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
 };
 
@@ -31,11 +31,82 @@ struct DrawDataSlot
 using PipelineStateId = uint32_t;
 using SortKey = uint64_t;
 
+enum class BlendSrcFactor : uint8_t
+{
+    Zero,
+    One,
+    SrcAlpha,
+    OneMinusSrcAlpha
+};
+
+enum class BlendDstFactor : uint8_t
+{
+    Zero,
+    One,
+    SrcAlpha,
+    OneMinusSrcAlpha
+};
+
+enum class BlendEquation : uint8_t
+{
+    Add,
+    Subtract
+};
+
+enum class CullMode : uint8_t
+{
+    Back,
+    Front
+};
+
+
 struct PipelineState
 {
     uint32_t shader = 0;
-    // TODO: blend, depth test, cull, stencil, scissor
+
+    // blend state
+    bool enable_blend = false;
+    BlendSrcFactor blend_src_factor = BlendSrcFactor::One;
+    BlendDstFactor blend_dst_factor = BlendDstFactor::Zero;
+    BlendEquation blend_equation = BlendEquation::Add;
+
+    // depth buffer flags
+    bool enable_depth_test = false;
+    bool enable_depth_write = false;
+
+    // face culling
+    bool enable_cull_face = false;
+    CullMode cull_mode = CullMode::Back;
+
+    // stencil buffer flags
+    bool enable_stencil_test = false;
+    // TODO
+
+    // scissor test
+    bool enable_scissor_test = false;
+    int scissor_x = 0;
+    int scissor_y = 0;
+    int scissor_width = 0;
+    int scissor_height = 0;
 };
+
+inline bool operator==(const PipelineState& lhs, const PipelineState& rhs)
+{
+    return lhs.shader == rhs.shader && lhs.enable_blend == rhs.enable_blend &&
+        lhs.blend_src_factor == rhs.blend_src_factor && lhs.blend_dst_factor == rhs.blend_dst_factor &&
+        lhs.blend_equation == rhs.blend_equation && lhs.enable_depth_test == rhs.enable_depth_test &&
+        lhs.enable_depth_write == rhs.enable_depth_write && lhs.enable_cull_face == rhs.enable_cull_face &&
+        lhs.cull_mode == rhs.cull_mode && lhs.enable_stencil_test == rhs.enable_stencil_test &&
+        lhs.enable_scissor_test == rhs.enable_scissor_test && lhs.scissor_x == rhs.scissor_x &&
+        lhs.scissor_y == rhs.scissor_y && lhs.scissor_width == rhs.scissor_width &&
+        lhs.scissor_height == rhs.scissor_height;
+}
+
+inline bool operator!=(const PipelineState& lhs, const PipelineState& rhs)
+{
+    return !(lhs == rhs);
+}
+
 
 struct DrawPacket
 {
@@ -105,12 +176,16 @@ public:
     }
 
 private:
+    void apply_pipeline_state(const PipelineState& state) const;
+
     SDL_GLContext m_context = nullptr;
     FrameStats m_frame_stats;
 
     MeshPool* m_mesh_pool = nullptr;
 
-    std::vector<PipelineState> m_states; // states, index is PipelineStateId
+    std::vector<PipelineState> m_states; // all pipeline states where the index is PipelineStateId
+    PipelineState m_last_applied_state;
+    bool m_has_applied_state = false;
 
     std::unique_ptr<FrameRingBuffer> m_frame_ring_buffer; // manages per-frame SSBO for draw data
 
@@ -119,7 +194,7 @@ private:
     // ### Per-frame buffers cleared in flush() ###
 
     std::vector<SortKey> m_sort_keys;     // hot path. 8 bytes each
-    std::vector<uint32_t> m_perm;         // hot path. 4 bytes each. permutation of draw_indices sorted by sort_keys
+    std::vector<uint32_t> m_perm;         // hot path. 4 bytes each. a permutation of draw_indices sorted by sort_keys
     std::vector<uint32_t> m_draw_indices; // index into draws
     std::vector<DrawPacket> m_draws;      // cold path. actual draw data
 };

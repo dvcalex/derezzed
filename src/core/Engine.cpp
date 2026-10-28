@@ -87,11 +87,11 @@ void Engine::tick()
     if (now_ms - m_last_stats_log_ms >= 250)
     {
         const auto& s = m_renderer->last_frame_stats();
-        DRZ_LOGF("[stats] submits={} draws={} prog_binds={} ssbo_binds={} cpu={:.2f}ms",
+        DRZ_LOGF("[stats] submits={} draws={} ssbo_binds={} state_changes={} cpu={:.2f}ms",
                  s.submits,
                  s.draw_calls,
-                 s.shader_binds,
                  s.ssbo_binds,
+                 s.state_changes,
                  s.cpu_flush_ms);
         DRZ_FLUSH_LOG();
         m_last_stats_log_ms = now_ms;
