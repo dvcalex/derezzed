@@ -29,9 +29,11 @@ add_library(${PROJECT_NAME} STATIC
     src/gfx/gl/MeshPool.cpp
     src/gfx/gl/IndirectRingBuffer.cpp
     src/gfx/gl/Texture.cpp
+    src/gfx/gl/ModelLoader.cpp
     src/util/Logger.cpp
 
     vendor/glad/src/gl.c
+    vendor/tinygltf/tinygltf.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -43,7 +45,12 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     vendor
 )
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC DRZ_BACKEND_GL)
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    DRZ_BACKEND_GL
+    TINYGLTF_NO_STB_IMAGE
+    TINYGLTF_NO_STB_IMAGE_WRITE
+    TINYGLTF_NO_EXTERNAL_IMAGE
+)
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC  SDL3::SDL3-static
@@ -80,6 +87,6 @@ endfunction()
 
 
 # Demos
-foreach(demo Hello MatrixRain Stress Scene3D)
+foreach(demo Hello MatrixRain Stress Scene3D Pumpkin)
   drz_add_demo(${demo})
 endforeach()
