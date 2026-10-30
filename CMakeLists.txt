@@ -57,7 +57,7 @@ function(drz_add_demo name)
   add_executable(${name} "${dir}/main.cpp")
   target_link_libraries(${name} PRIVATE ${PROJECT_NAME})
 
-  # Generator expression prevents Visual Studio from appending Debug/Release.
+  # Generator expression prevents Visual Studio from appending Debug/Release
   set_target_properties(${name} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY
             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}/$<0:>"
@@ -80,6 +80,6 @@ endfunction()
 
 
 # Demos
-foreach(demo Hello MatrixRain Stress)
+foreach(demo Hello MatrixRain Stress Scene3D)
   drz_add_demo(${demo})
 endforeach()
