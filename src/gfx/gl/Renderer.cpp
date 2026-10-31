@@ -228,7 +228,7 @@ void Renderer::configure_window_attributes()
 
 SDL_WindowFlags Renderer::window_flags()
 {
-    return SDL_WINDOW_OPENGL;
+    return SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 }
 
 Renderer::Renderer(SDL_Window* window)
