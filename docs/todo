@@ -1,2 +1,9 @@
 Eventual todos:
 - Offload draw command culling to compute shader
+- PipelineState
+    - granularity (apply state per-diff)
+    - finish blend
+    - finish stencil
+    - finish depth
+    - finish stencil (broken)
+    - finish scissor (broken)

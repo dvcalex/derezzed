@@ -95,7 +95,13 @@ static bool debugger_attached()
     return cached;
 }
 
-void GLAPIENTRY gl_debug_message(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/)
+void GLAPIENTRY gl_debug_message(GLenum source,
+                                 GLenum type,
+                                 GLuint id,
+                                 GLenum severity,
+                                 GLsizei /*length*/,
+                                 const GLchar* message,
+                                 const void* /*userParam*/)
 {
     // Filter out NOTIFICATION logs
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
@@ -149,6 +155,59 @@ struct DrawElementsIndirectCommand
 };
 static_assert(sizeof(DrawElementsIndirectCommand) == 20); // guard against accidental padding in the struct
 
+GLenum blend_factor(drz::BlendSrcFactor f)
+{
+    switch (f)
+    {
+    case drz::BlendSrcFactor::One:
+        return GL_ONE;
+    case drz::BlendSrcFactor::Zero:
+        return GL_ZERO;
+    case drz::BlendSrcFactor::SrcAlpha:
+        return GL_SRC1_ALPHA;
+    case drz::BlendSrcFactor::OneMinusSrcAlpha:
+        return GL_ONE_MINUS_SRC_ALPHA;
+    default:
+        assert(false);
+        std::abort();
+        return 0;
+    }
+}
+
+GLenum blend_factor(drz::BlendDstFactor f)
+{
+    switch (f)
+    {
+    case drz::BlendDstFactor::One:
+        return GL_ONE;
+    case drz::BlendDstFactor::Zero:
+        return GL_ZERO;
+    case drz::BlendDstFactor::SrcAlpha:
+        return GL_SRC_ALPHA;
+    case drz::BlendDstFactor::OneMinusSrcAlpha:
+        return GL_ONE_MINUS_SRC_ALPHA;
+    default:
+        assert(false);
+        std::abort();
+        return 0;
+    }
+}
+
+GLenum blend_equation(drz::BlendEquation e)
+{
+    switch (e)
+    {
+    case drz::BlendEquation::Add:
+        return GL_FUNC_ADD;
+    case drz::BlendEquation::Subtract:
+        return GL_FUNC_SUBTRACT;
+    default:
+        assert(false);
+        std::abort();
+        return 0;
+    }
+}
+
 } // anonymous namespace
 
 namespace drz
@@ -160,6 +219,8 @@ void Renderer::configure_window_attributes()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 #ifndef NDEBUG
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
@@ -167,7 +228,7 @@ void Renderer::configure_window_attributes()
 
 SDL_WindowFlags Renderer::window_flags()
 {
-    return SDL_WINDOW_OPENGL;
+    return SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 }
 
 Renderer::Renderer(SDL_Window* window)
@@ -210,7 +271,7 @@ Renderer::Renderer(SDL_Window* window)
     m_frame_ring_buffer = std::make_unique<FrameRingBuffer>(REGION_BYTES, static_cast<size_t>(ssbo_align));
 
     // Build indirect command ring buffer
-    constexpr size_t INDIRECT_BYTES_PER_FRAME = 256 * 1024;
+    constexpr size_t INDIRECT_BYTES_PER_FRAME = 256 * 1024; // 256 KB
     m_indirect_ring_buffer = std::make_unique<IndirectRingBuffer>(INDIRECT_BYTES_PER_FRAME);
 }
 
@@ -228,8 +289,8 @@ PipelineStateId Renderer::register_state(const PipelineState& state_to_register)
 {
     for (size_t i = 0; i < m_states.size(); ++i)
     {
-        // if state is already registered, return
-        if (m_states[i].shader == state_to_register.shader)
+        // if state is already registered, dont add it since we only want unique pipeline states
+        if (m_states[i] == state_to_register)
         {
             return static_cast<PipelineStateId>(i);
         }
@@ -262,20 +323,16 @@ void Renderer::flush()
     m_mesh_pool->bind();            // one-time vao bind for mesh pool
     m_indirect_ring_buffer->bind(); // one-time bind for indirect draw commands buffer
 
-    // Bind whole ssbo once for the frame
+    // bind whole ssbo once for the frame
     m_frame_ring_buffer->bind();
     ++m_frame_stats.ssbo_binds;
 
-    // Sort the (key, draw index) pairs by key.
-    // Build index permutation sorted by keys.
+    // sort the key -> draw-index pairs by key and build index permutation sorted by keys
     m_perm.resize(m_sort_keys.size());
     std::iota(m_perm.begin(), m_perm.end(), 0u); // fill with 0,1,2, ... n
     std::sort(m_perm.begin(), m_perm.end(), [&](uint32_t a, uint32_t b) { return m_sort_keys[a] < m_sort_keys[b]; });
 
-    uint32_t cur_shader = 0;
     const size_t N = m_perm.size();
-
-    // Iterate over runs of identical state_id, one multidraw per run.
     for (uint32_t run_start = 0; run_start < N;)
     {
         const DrawPacket& head_packt = m_draws[m_draw_indices[m_perm[run_start]]];
@@ -288,16 +345,19 @@ void Renderer::flush()
         }
         const size_t run_count = run_end - run_start;
 
-        const PipelineState& pipeline = m_states[pipeline_state];
-        if (pipeline.shader != cur_shader)
+        const PipelineState& cur_pipeline = m_states[pipeline_state];
+
+        if (!m_has_applied_state || m_last_applied_state != cur_pipeline)
         {
-            glUseProgram(pipeline.shader);
-            cur_shader = pipeline.shader;
-            ++m_frame_stats.shader_binds;
+            apply_pipeline_state(cur_pipeline);
+            m_last_applied_state = cur_pipeline;
+            m_has_applied_state = true;
+            ++m_frame_stats.state_changes;
         }
 
-        auto alloc = m_indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
-        auto* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
+        IndirectRingBuffer::Allocation alloc =
+            m_indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
+        DrawElementsIndirectCommand* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
 
         for (size_t i = 0; i < run_count; ++i)
         {
@@ -319,7 +379,11 @@ void Renderer::flush()
             };
         }
 
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)), static_cast<GLsizei>(run_count), 0);
+        glMultiDrawElementsIndirect(GL_TRIANGLES,
+                                    GL_UNSIGNED_INT,
+                                    reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)),
+                                    static_cast<GLsizei>(run_count),
+                                    0);
         ++m_frame_stats.draw_calls;
 
         run_start = run_end;
@@ -335,6 +399,55 @@ void Renderer::flush()
 
     auto t1 = std::chrono::steady_clock::now(); // ending time
     m_frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
+}
+
+void Renderer::apply_pipeline_state(const PipelineState& state) const
+{
+    // TODO: look into seeing if its worth it to apply state per-field diffs rather than entire state
+
+    glUseProgram(state.shader);
+
+    if (state.enable_blend)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+
+    glBlendEquation(blend_equation(state.blend_equation));
+
+    glBlendFunc(blend_factor(state.blend_src_factor), blend_factor(state.blend_dst_factor));
+
+    if (state.enable_depth_test)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+
+    if (state.enable_depth_write)
+        glDepthMask(GL_TRUE);
+    else
+        glDepthMask(GL_FALSE);
+
+    if (state.enable_cull_face)
+        glEnable(GL_CULL_FACE);
+    else
+        glDisable(GL_CULL_FACE);
+
+    if (state.cull_mode == drz::CullMode::Back)
+        glCullFace(GL_BACK);
+    else
+        glCullFace(GL_FRONT);
+
+    // TODO
+    if (state.enable_stencil_test)
+        glEnable(GL_STENCIL_TEST);
+    else
+        glDisable(GL_STENCIL_TEST);
+
+    if (state.enable_scissor_test)
+        glEnable(GL_SCISSOR_TEST);
+    else
+        glDisable(GL_SCISSOR_TEST);
+
+    glScissor(state.scissor_x, state.scissor_y, state.scissor_width, state.scissor_height);
 }
 
 void Renderer::set_viewport(int width, int height)
