@@ -110,11 +110,11 @@ inline bool operator!=(const PipelineState& lhs, const PipelineState& rhs)
 
 struct DrawPacket
 {
+    // TODO: instance count, base vertex, base instance, ssbo offset
     PipelineStateId state_id = 0;
     MeshHandle mesh;
     uint32_t draw_data_offset = 0; // byte offset into per-frame SSBO ring buffer
     uint32_t draw_data_bytes = 0;  // 0 == this draw doesn't use per-draw data
-    // TODO: instance count, base vertex, base instance, ssbo offset
 };
 
 inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth = 0)
@@ -189,13 +189,13 @@ private:
 
     std::unique_ptr<FrameRingBuffer> m_frame_ring_buffer; // manages per-frame SSBO for draw data
 
-    std::unique_ptr<IndirectRingBuffer> m_indirect_ring_buffer;
+    std::unique_ptr<IndirectRingBuffer> m_indirect_ring_buffer; // manages indirect draw commands
 
     // ### Per-frame buffers cleared in flush() ###
 
-    std::vector<SortKey> m_sort_keys;     // hot path. 8 bytes each
-    std::vector<uint32_t> m_perm;         // hot path. 4 bytes each. a permutation of draw_indices sorted by sort_keys
+    std::vector<SortKey> m_sort_keys;     // used to sort the draw call orders
+    std::vector<uint32_t> m_perm;         // a permutation of draw_indices sorted by sort_keys
     std::vector<uint32_t> m_draw_indices; // index into draws
-    std::vector<DrawPacket> m_draws;      // cold path. actual draw data
+    std::vector<DrawPacket> m_draws;      // draw data
 };
 } // namespace drz
