@@ -129,17 +129,17 @@ void GLAPIENTRY gl_debug_message(GLenum source,
     DRZ_FLUSH_LOG();
 
 #ifndef NDEBUG
-    // Trap on HIGH severity errors so debugger stops on the bad GL call in the stack frame.
-    // Outside of a debugger, the program will exit.
+    // Trap on HIGH severity errors so debugger stops on the GL call in the stack frame
+    // Outside of the debugger, the program will just exit
     if (severity == GL_DEBUG_SEVERITY_HIGH)
     {
         if (debugger_attached())
         {
-            DEBUG_BREAK(); // debugger stops on the bad GL call
+            DEBUG_BREAK();
         }
         else
         {
-            std::abort(); // SIGABRT, OS cleans up cleanly
+            std::abort();
         }
     }
 #endif
@@ -147,10 +147,10 @@ void GLAPIENTRY gl_debug_message(GLenum source,
 
 struct DrawElementsIndirectCommand
 {
-    uint32_t count;
-    uint32_t instance_count;
-    uint32_t first_index;
-    int32_t base_vertex;
+    uint32_t count;          // indices count
+    uint32_t instance_count; // instances of this command to repeat
+    uint32_t first_index;    // where in the ibo to start
+    int32_t base_vertex;     // added to index values before vbo lookup
     uint32_t base_instance;
 };
 static_assert(sizeof(DrawElementsIndirectCommand) == 20); // guard against accidental padding in the struct
@@ -265,6 +265,8 @@ Renderer::Renderer(SDL_Window* window)
     // Query ssbo alignment
     GLint ssbo_align = 0;
     glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &ssbo_align);
+    DRZ_LOGF("ssbo align={}", ssbo_align);
+    DRZ_FLUSH_LOG();
 
     // Build frame ring buffer
     constexpr size_t REGION_BYTES = 2 * 1024 * 1024; // 2 MB per-frame of draw data
@@ -327,49 +329,65 @@ void Renderer::flush()
     m_frame_ring_buffer->bind();
     ++m_frame_stats.ssbo_binds;
 
-    // sort the key -> draw-index pairs by key and build index permutation sorted by keys
+    // make space in the "sort-key index" permutation array
     m_perm.resize(m_sort_keys.size());
-    std::iota(m_perm.begin(), m_perm.end(), 0u); // fill with 0,1,2, ... n
+
+    // fill with 0,1,2, ... n
+    std::iota(m_perm.begin(), m_perm.end(), 0u);
+
+    // sort indices based on their keys
     std::sort(m_perm.begin(), m_perm.end(), [&](uint32_t a, uint32_t b) { return m_sort_keys[a] < m_sort_keys[b]; });
 
+    // loop through draw commands
     const size_t N = m_perm.size();
     for (uint32_t run_start = 0; run_start < N;)
     {
+        // get draw data ref and id for this draw command
         const DrawPacket& head_packt = m_draws[m_draw_indices[m_perm[run_start]]];
-        const PipelineStateId pipeline_state = head_packt.state_id;
+        const PipelineStateId head_state_id = head_packt.state_id;
 
+        // get range of draw commands that have the same pipeline state as our current one
         size_t run_end = run_start + 1;
-        while (run_end < N && m_draws[m_draw_indices[m_perm[run_end]]].state_id == pipeline_state)
+        while (run_end < N && m_draws[m_draw_indices[m_perm[run_end]]].state_id == head_state_id)
         {
             ++run_end;
         }
-        const size_t run_count = run_end - run_start;
+        const size_t run_count = run_end - run_start; // range of draw commands with the same state
 
-        const PipelineState& cur_pipeline = m_states[pipeline_state];
+        const PipelineState& cur_pipeline = m_states[head_state_id];
 
-        if (!m_has_applied_state || m_last_applied_state != cur_pipeline)
+        if (!m_has_applied_state || m_last_applied_state != cur_pipeline) // TODO: do we need this check?
         {
-            apply_pipeline_state(cur_pipeline);
+            apply_pipeline_state(cur_pipeline); // make api calls to change some type of gpu state
             m_last_applied_state = cur_pipeline;
             m_has_applied_state = true;
             ++m_frame_stats.state_changes;
         }
 
+        // Allocate space for our draw commands (DrawElementsIndirectCommand)
         IndirectRingBuffer::Allocation alloc =
             m_indirect_ring_buffer->allocate(static_cast<uint32_t>(run_count * sizeof(DrawElementsIndirectCommand)));
+
+        // get ptr to draw command
         DrawElementsIndirectCommand* commands_ptr = static_cast<DrawElementsIndirectCommand*>(alloc.ptr);
 
+        // loop through this set of draw commands
         for (size_t i = 0; i < run_count; ++i)
         {
+            // draw command packet for this draw
             const DrawPacket& packet = m_draws[m_draw_indices[m_perm[run_start + i]]];
+
+            // get mesh out of mesh pool by id
             const MeshSlice mesh = m_mesh_pool->slice(packet.mesh);
 
+            // TODO: Replace derived base_instance with an explicit field
             uint32_t base_instance = 0;
             if (packet.draw_data_bytes > 0)
             {
                 base_instance = packet.draw_data_offset / packet.draw_data_bytes;
             }
 
+            // populate the draw commands allocation we made earlier
             commands_ptr[i] = DrawElementsIndirectCommand {
                 .count = mesh.index_count,
                 .instance_count = 1,
@@ -379,9 +397,13 @@ void Renderer::flush()
             };
         }
 
+        // indirect multi draw opengl call
         glMultiDrawElementsIndirect(GL_TRIANGLES,
                                     GL_UNSIGNED_INT,
-                                    reinterpret_cast<const void*>(static_cast<uintptr_t>(alloc.byte_offset)),
+                                    reinterpret_cast<const void*>(static_cast<uintptr_t>(
+                                        alloc.byte_offset)), // expects a void ptr; TODO: is there a better way to do
+                                                             // this? Integer to pointer cast pessimizes optimization
+                                                             // opportunities (clang-tidy performance-no-int-to-ptr)
                                     static_cast<GLsizei>(run_count),
                                     0);
         ++m_frame_stats.draw_calls;
@@ -403,7 +425,7 @@ void Renderer::flush()
 
 void Renderer::apply_pipeline_state(const PipelineState& state) const
 {
-    // TODO: look into seeing if its worth it to apply state per-field diffs rather than entire state
+    // TODO: look into seeing if its worth it to apply state per-field diffs rather always reapplying entire state
 
     glUseProgram(state.shader);
 
