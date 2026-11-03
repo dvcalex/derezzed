@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(DRZ_ENABLE_LOGGING "Keep DRZ logging enabled in Release builds" OFF)
+
 # Make compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -46,6 +48,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
+    $<$<BOOL:${DRZ_ENABLE_LOGGING}>:DRZ_ENABLE_LOGGING>
     DRZ_BACKEND_GL
     TINYGLTF_NO_STB_IMAGE
     TINYGLTF_NO_STB_IMAGE_WRITE
@@ -87,6 +90,6 @@ endfunction()
 
 
 # Demos
-foreach(demo Hello MatrixRain Stress Scene3D Pumpkin)
+foreach(demo Hello MatrixRain Stress Scene3D Pumpkin ManyCubes)
   drz_add_demo(${demo})
 endforeach()

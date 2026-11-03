@@ -1,10 +1,12 @@
 # derezzed
+
 WIP toy graphics engine
 
 ## Features
+
 - CMake build system
-    - Engine builds as a static library
-    - each app has its own `CMakeLists.txt` that links against the engine
+  - Engine builds as a static library
+  - Each demo links against the engine through the root `CMakeLists.txt`
 - SDL3 for windowing, input, media, etc.
 - Engine/header api-agnostic interfaces
   - OpenGL backend (can add more with some work)
@@ -12,6 +14,7 @@ WIP toy graphics engine
 - Demos
 
 ## Dependencies
+
 - Everything is vendored under `vendor/`.
 
 ### Required:
@@ -27,27 +30,49 @@ Clone:
 git clone <repo-url>
 ```
 
-Then configure and build with the cmake preset:
+Configure and build debug:
 
 ```bash
-# Configure (first time only)
-cmake --preset default
-
-# Build everything
-cmake --build --preset default
-
-# Or optimized build
-cmake --preset default -DCMAKE_BUILD_TYPE=Release && cmake --build --preset default
+cmake --preset debug
+cmake --build --preset debug
 ```
 
-> SDL3 might take a while, should only concern the first build since it's incremental
+Or configure and build optimized release:
 
-Each demo executable is placed in `build/bin/`, with its `res/` copied next to it.
+```bash
+cmake --preset release
+cmake --build --preset release
+```
+
+Release disables asserts and debug logging, including the renderer stats output.
+
+To keep logging enabled in Release:
+
+```bash
+cmake --preset release -DDRZ_ENABLE_LOGGING=ON
+cmake --build --preset release
+```
+
+This keeps Release optimization enabled. The option is saved in the build directory; configure with `-DDRZ_ENABLE_LOGGING=OFF` to turn it off again. Debug logging is always enabled.
+
+Both build commands build all demos. To build just one, add its target name:
+
+```bash
+cmake --build --preset release --target ManyCubes
+```
+
+> SDL3 may take a while to build the first time for each preset. Subsequent builds are incremental.
+
+Demo executables go in `build/debug/bin/<Demo>/` or `build/release/bin/<Demo>/`. Their assets should be copied beside the binaries, so relative paths work.
 
 ## Run
 
 ```bash
-./build/bin/Hello/Hello
+# Debug
+./build/debug/bin/Hello/Hello
+
+# Release
+./build/release/bin/Hello/Hello
 ```
 
 ## Demos
@@ -58,7 +83,8 @@ Live in the `demo/` folder, build and run like above. Use these for testing and 
 
 Implement `drz::App` and provide a `create_app()` factory:
 
-*psuedo code*
+_psuedo code_
+
 ```cpp
 #include <drz/core/Engine.hpp>
 #include <drz/core/App.hpp>
@@ -84,6 +110,4 @@ drz::App* create_app() {
 }
 ```
 
-Add a `CMakeLists.txt` next to your sources that links the engine (look at a demo's `CMakeLists.txt` for reference).
-
-Then add it to the build by dropping `add_subdirectory(path/to/myapp)` into the root `CMakeLists.txt`.
+Put your app in `demo/MyApp/main.cpp`, with any assets in `demo/MyApp/res/`. Add `MyApp` to the demos list in the root `CMakeLists.txt`. `drz_add_demo` links the engine and copies the resources beside the binary file.
