@@ -17,7 +17,7 @@ template <typename... Args> void logf(std::format_string<Args...> fmt, Args&&...
 
 } // namespace drz::logger
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) || defined(DRZ_ENABLE_LOGGING)
 #define DRZ_LOG(msg) ::drz::logger::log(msg)
 #define DRZ_LOGF(...) ::drz::logger::logf(__VA_ARGS__)
 #define DRZ_FLUSH_LOG() ::drz::logger::flush_log()
