@@ -269,11 +269,11 @@ Renderer::Renderer(SDL_Window* window)
     DRZ_FLUSH_LOG();
 
     // Build frame ring buffer
-    constexpr size_t REGION_BYTES = 2 * 1024 * 1024; // 2 MB per-frame of draw data
+    constexpr size_t REGION_BYTES = 128 * 1024 * 1024;
     m_frame_ring_buffer = std::make_unique<FrameRingBuffer>(REGION_BYTES, static_cast<size_t>(ssbo_align));
 
     // Build indirect command ring buffer
-    constexpr size_t INDIRECT_BYTES_PER_FRAME = 256 * 1024; // 256 KB
+    constexpr size_t INDIRECT_BYTES_PER_FRAME = 16 * 1024 * 1024;
     m_indirect_ring_buffer = std::make_unique<IndirectRingBuffer>(INDIRECT_BYTES_PER_FRAME);
 }
 
