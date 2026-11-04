@@ -39,8 +39,6 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title)
     }
     SDL_GetWindowSizeInPixels(m_window, &m_width, &m_height); // just ask SDL for size after we init it
 
-    m_keys_state = SDL_GetKeyboardState(nullptr); // first keyboard state
-
     // ### Init Renderer ###
 
     m_renderer = std::make_unique<Renderer>(m_window);
@@ -97,6 +95,11 @@ void Engine::tick()
         m_last_stats_log_ms = now_ms;
     }
 
+    // clear "edge event" key arrays so that they only track state for this frame
+    m_keys_pressed.fill(false);
+    m_keys_released.fill(false);
+    m_mouse_delta = {0.f, 0.f};
+
     SDL_GL_SwapWindow(m_window);  // Swap render buffers
     m_last_time_ms = now_time_ms; // Set last time for next iteration
 }
@@ -114,6 +117,30 @@ SDL_AppResult Engine::handle_event(const SDL_Event& event)
         m_renderer->set_viewport(w, h); // update viewport to match new window size
         m_width = w;
         m_height = h;
+        break;
+    }
+    case SDL_EVENT_KEY_DOWN:
+    {
+        auto scancode = event.key.scancode;
+        if (!m_keys_down[scancode])
+            m_keys_pressed[scancode] = true;
+        m_keys_down[scancode] = true;
+        break;
+    }
+    case SDL_EVENT_KEY_UP:
+    {
+        auto scancode = event.key.scancode;
+        if (m_keys_down[scancode])
+            m_keys_released[scancode] = true;
+        m_keys_down[scancode] = false;
+        break;
+    }
+    case SDL_EVENT_MOUSE_MOTION:
+    {
+        m_mouse_delta.first += event.motion.xrel;
+        m_mouse_delta.second += event.motion.yrel;
+        m_mouse_pos.first = event.motion.x;
+        m_mouse_pos.second = event.motion.y;
         break;
     }
     default:
@@ -149,6 +176,36 @@ std::pair<int, int> Engine::framebuffer_size() const
 void Engine::request_quit()
 {
     m_quit_requested = true;
+}
+
+bool Engine::key_down(SDL_Scancode scancode) const
+{
+    return m_keys_down[scancode];
+}
+
+bool Engine::key_pressed(SDL_Scancode scancode) const
+{
+    return m_keys_pressed[scancode];
+}
+
+bool Engine::key_released(SDL_Scancode scancode) const
+{
+    return m_keys_released[scancode];
+}
+
+std::pair<float, float> Engine::mouse_delta() const
+{
+    return m_mouse_delta;
+}
+
+std::pair<float, float> Engine::mouse_position() const
+{
+    return m_mouse_pos;
+}
+
+void Engine::set_mouse_grabbed(bool mouse_grabbed)
+{
+    SDL_SetWindowRelativeMouseMode(m_window, mouse_grabbed);
 }
 
 /*
