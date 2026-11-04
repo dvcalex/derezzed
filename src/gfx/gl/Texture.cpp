@@ -37,7 +37,8 @@ Texture::~Texture()
 }
 
 Texture::Texture(Texture&& other) noexcept
-    : m_texture_handle(other.m_texture_handle), m_width(other.m_width), m_height(other.m_height), m_channels_in_file(other.m_channels_in_file)
+    : m_texture_handle(other.m_texture_handle), m_width(other.m_width), m_height(other.m_height),
+      m_channels_in_file(other.m_channels_in_file)
 {
     other.m_texture_handle = 0;
 }
