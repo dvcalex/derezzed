@@ -43,8 +43,7 @@ public:
         m_mesh = drz::model_loader::load_mesh_gltf(path, *m_pool);
         if (m_mesh.id == 0)
         {
-            DRZ_LOG("mesh load failed");
-            return;
+            throw std::runtime_error("mesh load failed");
         }
 
         // setup material system components
