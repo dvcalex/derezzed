@@ -302,12 +302,6 @@ PipelineStateId Renderer::register_state(const PipelineState& state_to_register)
     return static_cast<PipelineStateId>(m_states.size() - 1);
 }
 
-DrawDataSlot Renderer::allocate_draw_data(uint32_t bytes, uint32_t align)
-{
-    auto slot = m_frame_ring_buffer->allocate(bytes, align);
-    return {slot.ptr, slot.offset, slot.bytes};
-}
-
 void Renderer::submit(SortKey key, const DrawPacket& packet)
 {
     // append draw packet and sort key
@@ -380,20 +374,13 @@ void Renderer::flush()
             // get mesh out of mesh pool by id
             const MeshSlice mesh = m_mesh_pool->slice(packet.mesh);
 
-            // TODO: Replace derived base_instance with an explicit field
-            uint32_t base_instance = 0;
-            if (packet.draw_data_bytes > 0)
-            {
-                base_instance = packet.draw_data_offset / packet.draw_data_bytes;
-            }
-
             // populate the draw commands allocation we made earlier
             commands_ptr[i] = DrawElementsIndirectCommand {
                 .count = mesh.index_count,
                 .instance_count = 1,
                 .first_index = mesh.first_index,
                 .base_vertex = static_cast<int32_t>(mesh.base_vertex),
-                .base_instance = base_instance,
+                .base_instance = packet.base_instance,
             };
         }
 

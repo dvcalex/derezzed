@@ -135,20 +135,14 @@ public:
         {
             drz::PipelineStateId pid = m_pipelines[m_shader_idx[i]];
 
-            auto [offset, bytes] = renderer.push_draw_data(PerDraw {
+            const uint32_t index = renderer.push_draw_data(PerDraw {
                 .offset = m_offsets[i],
                 .scale = m_scales[i],
                 ._pad = 0.0f,
                 .tint = m_tints[i],
             });
 
-            renderer.submit(drz::gen_sort_key(0, pid),
-                            {
-                                .state_id = pid,
-                                .mesh = m_quad,
-                                .draw_data_offset = offset,
-                                .draw_data_bytes = bytes,
-                            });
+            renderer.submit(drz::gen_sort_key(0, pid), {.state_id = pid, .mesh = m_quad, .base_instance = index});
         }
     }
 };

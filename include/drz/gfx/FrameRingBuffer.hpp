@@ -21,6 +21,12 @@ public:
         uint32_t bytes;  // size of the slot
     };
 
+    struct SlotIndex
+    {
+        std::byte* ptr;
+        uint32_t index; // index into a slot rather than a byte offset
+    };
+
     FrameRingBuffer(size_t per_region_bytes, size_t alignment, uint32_t binding_point = 0);
     ~FrameRingBuffer();
 
@@ -31,14 +37,10 @@ public:
     FrameRingBuffer(FrameRingBuffer&&) = default;
     FrameRingBuffer& operator=(FrameRingBuffer&&) = default;
 
-    /**
-     * @brief
-     *
-     * @param bytes
-     * @param align
-     * @return Slot
-     */
+
     Slot allocate(size_t bytes, size_t align);
+
+    SlotIndex allocate_slot(uint32_t stride);
 
     void bind() const;
 

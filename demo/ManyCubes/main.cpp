@@ -34,9 +34,7 @@ class ManyCubesApp : public drz::App
     {
         mat4 model;
         vec4 tint;
-        vec4 _pad[3];
     };
-    static_assert(sizeof(PerDraw) == 128);
 
 public:
     static constexpr int GRID = 200;
@@ -58,7 +56,6 @@ public:
 
         build_scene();
 
-        m_engine->set_title("ManyCubes: 40,000 cubes, 128 states, 32 passes");
         DRZ_LOGF("scene grid: {}x{}={}", GRID, GRID, GRID * GRID);
         DRZ_FLUSH_LOG();
     }
@@ -84,7 +81,7 @@ public:
                                                           .scissor_width = 16384 + static_cast<int>(i),
                                                           .scissor_height = 16384});
             }
-            SDL_GL_SetSwapInterval(0); // Temporary to avoid the refresh rate cap
+            SDL_GL_SetSwapInterval(0); // temporary to avoid the refresh rate cap
             renderer.use_mesh_pool(*m_pool);
             m_registered = true;
         }
@@ -107,14 +104,14 @@ public:
 private:
     void submit_draw(drz::Renderer& renderer, drz::MeshHandle mesh, const mat4& model, const vec4& tint, uint32_t index)
     {
-        auto [offset, bytes] = renderer.push_draw_data(PerDraw {.model = model, .tint = tint});
+        const uint32_t base_instance_index = renderer.push_draw_data(PerDraw {.model = model, .tint = tint});
 
         uint32_t mixed = index * 747796405u + 2891336453u;
         mixed ^= mixed >> 16;
         const auto pipeline = m_pipelines[mixed % PIPELINE_COUNT];
         const auto pass = static_cast<uint8_t>((mixed >> 16) % 32);
         renderer.submit(drz::gen_sort_key(pass, pipeline, mixed),
-                        {.state_id = pipeline, .mesh = mesh, .draw_data_offset = offset, .draw_data_bytes = bytes});
+                        {.state_id = pipeline, .mesh = mesh, .base_instance = base_instance_index});
     }
 
     void build_scene()

@@ -17,29 +17,27 @@ public:
     constexpr BumpAllocator(std::byte* base, size_t capacity) noexcept : m_base(base), m_capacity(capacity) {}
 
     /**
-     * @brief Calculates new head position based on size of allocation, rounded to the next multiple (and power of 2) of
+     * @brief Calculates new head position based on size of allocation, rounded to the next multiple of
      * align.
      *
      * @param bytes Size in bytes to allocate.
-     * @param align Byte alignment for the new head ptr. ASSUMES A POWER OF 2!
+     * @param align Byte alignment for the new head ptr.
      * @return std::byte* Returns nullptr if request doesn't fit.
      */
     constexpr std::byte* allocate(size_t bytes, size_t align) noexcept
     {
-        // round head up to the next multiple of align
-        size_t aligned_head = (m_head + align - 1) & ~(align - 1);
+        size_t aligned_head = ((m_head + align - 1) / align) * align;
+
         if (aligned_head + bytes > m_capacity)
         {
             return nullptr; // not enough space
         }
+
         std::byte* ptr = m_base + aligned_head;
         m_head = aligned_head + bytes;
         return ptr;
     }
 
-    /**
-     * @brief Reset
-     */
     constexpr void reset() noexcept
     {
         m_head = 0;

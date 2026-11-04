@@ -33,9 +33,7 @@ class PumpkinApp : public drz::App
     {
         mat4 model;
         vec4 tint;
-        vec4 _pad[3];
     };
-    static_assert(sizeof(PerDraw) == 128);
 
 public:
     static constexpr int GRID = 20;
@@ -56,7 +54,7 @@ public:
 
         build_scene();
 
-        // DRZ_LOGF("scene grid: {}x{}={}", GRID, GRID, GRID * GRID);
+        DRZ_LOGF("scene grid: {}x{}={}", GRID, GRID, GRID * GRID);
         DRZ_FLUSH_LOG();
     }
 
@@ -97,9 +95,9 @@ public:
 private:
     void submit_draw(drz::Renderer& renderer, drz::MeshHandle mesh, const mat4& model, const vec4& tint)
     {
-        auto [offset, bytes] = renderer.push_draw_data(PerDraw {.model = model, .tint = tint});
+        const uint32_t index = renderer.push_draw_data(PerDraw {.model = model, .tint = tint});
         renderer.submit(drz::gen_sort_key(0, m_pipeline),
-                        {.state_id = m_pipeline, .mesh = mesh, .draw_data_offset = offset, .draw_data_bytes = bytes});
+                        {.state_id = m_pipeline, .mesh = mesh, .base_instance = index});
     }
 
     void build_scene()
