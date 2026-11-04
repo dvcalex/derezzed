@@ -38,7 +38,7 @@ class PumpkinApp : public drz::App
 public:
     static constexpr int GRID = 20;
 
-    void init() override
+    void init(drz::Renderer& renderer) override
     {
         m_pool.emplace(200000, 600000);
 
@@ -54,6 +54,12 @@ public:
 
         build_scene();
 
+        m_pipeline = renderer.register_state({.shader = m_shader->handle(),
+                                              .enable_depth_test = true,
+                                              .enable_depth_write = true,
+                                              .enable_cull_face = true});
+        renderer.use_mesh_pool(*m_pool);
+
         DRZ_LOGF("scene grid: {}x{}={}", GRID, GRID, GRID * GRID);
         DRZ_FLUSH_LOG();
     }
@@ -67,16 +73,6 @@ public:
 
     void render(drz::Renderer& renderer) override
     {
-        if (!m_registered)
-        {
-            m_pipeline = renderer.register_state({.shader = m_shader->handle(),
-                                                  .enable_depth_test = true,
-                                                  .enable_depth_write = true,
-                                                  .enable_cull_face = true});
-            renderer.use_mesh_pool(*m_pool);
-            m_registered = true;
-        }
-
         const vec3 eye = orbit_eye();
 
         renderer.clear(BG_COLOR.x, BG_COLOR.y, BG_COLOR.z, 1.0f);
@@ -142,7 +138,6 @@ private:
     std::optional<drz::MeshPool> m_pool;
     drz::MeshHandle m_mesh;
     std::optional<drz::Shader> m_shader;
-    bool m_registered = false;
     drz::PipelineStateId m_pipeline = 0;
 
     std::vector<mat4> m_models;

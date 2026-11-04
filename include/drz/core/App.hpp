@@ -16,7 +16,7 @@ class App
 public:
     virtual ~App() = default;
 
-    virtual void init() = 0;                                 // Called once when app starts
+    virtual void init(Renderer& renderer) = 0;               // Called once when app starts
     virtual void handle_event(const SDL_Event& event) = 0;   // Called everytime SDL fires events
     virtual void update(float dt_ms, double elapsed_ms) = 0; // Called every frame
     virtual void render(Renderer& renderer) = 0;             // Called every frame

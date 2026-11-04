@@ -94,7 +94,7 @@ _psuedo code_
 
 class MyApp : public drz::App {
 public:
-    void init() override {
+    void init(drz::Renderer& renderer) override {
         std::cout << "Hello World!\n";
     }
 

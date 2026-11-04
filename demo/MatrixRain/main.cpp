@@ -19,7 +19,7 @@ static std::string res_path(const std::string& relative)
 class MatrixRain : public drz::App
 {
 public:
-    void init() override
+    void init(drz::Renderer& renderer) override
     {
         m_pool.emplace(64, 64);
 
@@ -56,6 +56,9 @@ public:
         });
 
         m_shader.emplace(res_path("shaders/matrix.vert"), res_path("shaders/matrix.frag"));
+
+        m_pipeline = renderer.register_state({.shader = m_shader->handle()});
+        renderer.use_mesh_pool(*m_pool);
     }
 
     void handle_event(const SDL_Event&) override {}
@@ -67,13 +70,6 @@ public:
 
     void render(drz::Renderer& renderer) override
     {
-        if (!m_registered)
-        {
-            m_pipeline = renderer.register_state({.shader = m_shader->handle()});
-            renderer.use_mesh_pool(*m_pool);
-            m_registered = true;
-        }
-
         renderer.clear(0.0f, 0.0f, 0.0f, 1.0f);
 
         auto [w, h] = m_engine->framebuffer_size();
@@ -89,7 +85,6 @@ private:
     std::optional<drz::Shader> m_shader;
     float m_time = 0.0f;
 
-    bool m_registered = false;
     drz::PipelineStateId m_pipeline = 0;
 };
 
