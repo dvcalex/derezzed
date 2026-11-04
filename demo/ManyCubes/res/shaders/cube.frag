@@ -1,5 +1,7 @@
 #version 460 core
 
+#include "common/blinn_phong.glsl"
+
 in vec3 v_normal;
 in vec4 v_tint;
 

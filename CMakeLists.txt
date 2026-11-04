@@ -86,6 +86,18 @@ function(drz_add_demo name)
             VERBATIM
         )
   endif()
+
+  if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res")
+    add_custom_command(
+            TARGET ${name}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${CMAKE_CURRENT_SOURCE_DIR}/res"
+                    "$<TARGET_FILE_DIR:${name}>/res"
+            COMMENT "Copying shared resources for ${name}"
+            VERBATIM
+        )
+  endif()
 endfunction()
 
 
