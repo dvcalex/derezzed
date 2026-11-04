@@ -40,7 +40,7 @@ public:
     static constexpr int GRID = 200;
     static constexpr size_t PIPELINE_COUNT = 128;
 
-    void init() override
+    void init(drz::Renderer& renderer) override
     {
         m_pool.emplace(200000, 600000);
 
@@ -56,6 +56,19 @@ public:
 
         build_scene();
 
+        for (size_t i = 0; i < m_pipelines.size(); ++i)
+        {
+            m_pipelines[i] = renderer.register_state({.shader = m_shader->handle(),
+                                                      .enable_depth_test = true,
+                                                      .enable_depth_write = true,
+                                                      .enable_cull_face = true,
+                                                      .enable_scissor_test = true,
+                                                      .scissor_width = 16384 + static_cast<int>(i),
+                                                      .scissor_height = 16384});
+        }
+        SDL_GL_SetSwapInterval(0); // temporary to avoid the refresh rate cap
+        renderer.use_mesh_pool(*m_pool);
+
         DRZ_LOGF("scene grid: {}x{}={}", GRID, GRID, GRID * GRID);
         DRZ_FLUSH_LOG();
     }
@@ -69,23 +82,6 @@ public:
 
     void render(drz::Renderer& renderer) override
     {
-        if (!m_registered)
-        {
-            for (size_t i = 0; i < m_pipelines.size(); ++i)
-            {
-                m_pipelines[i] = renderer.register_state({.shader = m_shader->handle(),
-                                                          .enable_depth_test = true,
-                                                          .enable_depth_write = true,
-                                                          .enable_cull_face = true,
-                                                          .enable_scissor_test = true,
-                                                          .scissor_width = 16384 + static_cast<int>(i),
-                                                          .scissor_height = 16384});
-            }
-            SDL_GL_SetSwapInterval(0); // temporary to avoid the refresh rate cap
-            renderer.use_mesh_pool(*m_pool);
-            m_registered = true;
-        }
-
         const vec3 eye = orbit_eye();
 
         renderer.clear(BG_COLOR.x, BG_COLOR.y, BG_COLOR.z, 1.0f);
@@ -170,7 +166,6 @@ private:
     std::optional<drz::MeshPool> m_pool;
     drz::MeshHandle m_mesh;
     std::optional<drz::Shader> m_shader;
-    bool m_registered = false;
     std::array<drz::PipelineStateId, PIPELINE_COUNT> m_pipelines {};
 
     std::vector<mat4> m_models;

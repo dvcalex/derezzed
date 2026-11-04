@@ -54,7 +54,7 @@ Engine::Engine(int initial_width, int initial_height, std::string_view title)
     }
 
     m_app->m_engine = this; // set app's engine ptr before initializing app
-    m_app->init();
+    m_app->init(*m_renderer);
 
     m_last_time_ms = SDL_GetTicks();
 }

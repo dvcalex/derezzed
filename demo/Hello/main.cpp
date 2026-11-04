@@ -19,7 +19,7 @@ static std::string res_path(const std::string& relative)
 class HelloApp : public drz::App
 {
 public:
-    void init() override
+    void init(drz::Renderer& renderer) override
     {
         m_pool.emplace(64, 64);
 
@@ -39,6 +39,9 @@ public:
         uint32_t albedo_slot = 0;
         m_shader->set_texture_slot("u_albedo", albedo_slot);
         m_albedo_tex->bind(albedo_slot);
+
+        m_pipeline = renderer.register_state({.shader = m_shader->handle()});
+        renderer.use_mesh_pool(*m_pool);
     }
 
     void handle_event(const SDL_Event&) override {}
@@ -46,13 +49,6 @@ public:
 
     void render(drz::Renderer& renderer) override
     {
-        if (!m_registered)
-        {
-            m_pipeline = renderer.register_state({.shader = m_shader->handle()});
-            renderer.use_mesh_pool(*m_pool);
-            m_registered = true;
-        }
-
         renderer.clear(0.1f, 0.1f, 0.1f, 1.0f);
         renderer.submit(drz::gen_sort_key(0, m_pipeline), {.state_id = m_pipeline, .mesh = m_triangle});
     }
@@ -63,7 +59,6 @@ private:
     std::optional<drz::Shader> m_shader;
     std::optional<drz::Texture> m_albedo_tex;
 
-    bool m_registered = false;
     drz::PipelineStateId m_pipeline = 0;
 };
 

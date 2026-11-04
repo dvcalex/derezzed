@@ -43,7 +43,6 @@ private:
     drz::MeshHandle m_quad;
     std::vector<drz::Shader> m_shaders;
 
-    bool m_registered = false;
     std::array<drz::PipelineStateId, 3> m_pipelines {};
 
     // SoA per-quad data
@@ -53,7 +52,7 @@ private:
     std::vector<uint32_t> m_shader_idx;
 
 public:
-    void init() override
+    void init(drz::Renderer& renderer) override
     {
         m_pool.emplace(64, 64);
 
@@ -112,6 +111,12 @@ public:
             m_tints.push_back({tint(rng), tint(rng), tint(rng), 1.0f});
             m_shader_idx.push_back(si(rng));
         }
+
+        for (size_t s = 0; s < m_shaders.size(); ++s)
+        {
+            m_pipelines[s] = renderer.register_state({.shader = m_shaders[s].handle()});
+        }
+        renderer.use_mesh_pool(*m_pool);
     }
 
     void handle_event(const SDL_Event&) override {}
@@ -119,16 +124,6 @@ public:
 
     void render(drz::Renderer& renderer) override
     {
-        if (!m_registered)
-        {
-            for (size_t s = 0; s < m_shaders.size(); ++s)
-            {
-                m_pipelines[s] = renderer.register_state({.shader = m_shaders[s].handle()});
-            }
-            renderer.use_mesh_pool(*m_pool);
-            m_registered = true;
-        }
-
         renderer.clear(0.05f, 0.05f, 0.08f, 1.0f);
 
         for (size_t i = 0; i < quad_count; ++i)

@@ -26,7 +26,7 @@ public:
     void handle_event(const SDL_Event&) override {}
     void update(float, double) override {}
 
-    void init() override
+    void init(drz::Renderer& renderer) override
     {
         m_pool.emplace(1024, 1024);
 
@@ -65,20 +65,16 @@ public:
         // cube pushed back and left and rotated 45 deg about y axis
         m_models[2] = glm::translate(mat4(1.0f), vec3(-1.6f, 0.0f, -1.2f)) *
             glm::rotate(mat4(1.0f), glm::radians(45.0f), vec3(0.0f, 1.0f, 0.0f));
+
+        m_pipeline = renderer.register_state({.shader = m_shader->handle(),
+                                              .enable_depth_test = true,
+                                              .enable_depth_write = true,
+                                              .enable_cull_face = true});
+        renderer.use_mesh_pool(*m_pool);
     }
 
     void render(drz::Renderer& renderer) override
     {
-        if (!m_registered)
-        {
-            m_pipeline = renderer.register_state({.shader = m_shader->handle(),
-                                                  .enable_depth_test = true,
-                                                  .enable_depth_write = true,
-                                                  .enable_cull_face = true});
-            renderer.use_mesh_pool(*m_pool);
-            m_registered = true;
-        }
-
         renderer.clear(0.08f, 0.08f, 0.1f, 1.0f);
 
         auto [w, h] = m_engine->framebuffer_size();
@@ -106,7 +102,6 @@ private:
     std::optional<drz::MeshPool> m_pool;
     drz::MeshHandle m_cube;
     std::optional<drz::Shader> m_shader;
-    bool m_registered = false;
     drz::PipelineStateId m_pipeline = 0;
     mat4 m_models[3]; // 3 cubes in different spots
 };
