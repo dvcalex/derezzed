@@ -14,11 +14,14 @@ layout(std430, binding = 0) buffer DrawData {
 uniform mat4 u_view;
 uniform mat4 u_proj;
 
+out vec2 v_uv;
 out vec3 v_normal;
 out vec3 v_world_pos;
 
 void main()
 {
+    v_uv = in_uv;
+
     mat4 model = draws[gl_BaseInstance].model;
     vec4 world_pos = model * vec4(in_pos, 1.0);
 

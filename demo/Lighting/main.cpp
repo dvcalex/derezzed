@@ -1,11 +1,12 @@
 #include "drz/core/Engine.hpp"
 #include "drz/core/App.hpp"
+#include "drz/core/Camera.hpp"
 #include "drz/gfx/Renderer.hpp"
 #include "drz/gfx/Shader.hpp"
 #include "drz/gfx/MeshPool.hpp"
 #include "drz/gfx/ModelLoader.hpp"
+#include "drz/gfx/Texture.hpp"
 #include "drz/util/Logger.hpp"
-#include "drz/core/Camera.hpp"
 
 
 #include <SDL3/SDL.h>
@@ -46,16 +47,20 @@ public:
             return;
         }
 
+        // setup material system components
         m_shader.emplace(res_path("shaders/lit_cube.vert"), res_path("shaders/lit_cube.frag"));
+        m_albedo_tex.emplace(res_path("cereal.png"));
+        m_shader->set_texture_slot("u_albedo", 0);
+        m_albedo_tex->bind(0);
 
+        m_camera.emplace(vec3(0.f, 2.f, 13.f), 0.f, -15.f); // setup camera
+
+        // Renderer registration
         m_pipeline = renderer.register_state({.shader = m_shader->handle(),
                                               .enable_depth_test = true,
                                               .enable_depth_write = true,
                                               .enable_cull_face = true});
-
         renderer.use_mesh_pool(*m_pool);
-
-        m_camera.emplace(vec3(0.f, 2.f, 13.f), 0.f, -15.f);
     }
 
     void handle_event(const SDL_Event&) override {}
@@ -82,6 +87,7 @@ private:
     std::optional<drz::MeshPool> m_pool;
     drz::MeshHandle m_mesh;
     std::optional<drz::Shader> m_shader;
+    std::optional<drz::Texture> m_albedo_tex;
     drz::PipelineStateId m_pipeline = 0;
     std::optional<drz::Camera> m_camera;
 };
