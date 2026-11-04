@@ -4,10 +4,10 @@
 
 #include <glad/gl.h>
 #include <stdexcept>
+#include <cassert>
 
 namespace drz
 {
-
 FrameRingBuffer::FrameRingBuffer(size_t per_region_bytes, size_t alignment, uint32_t binding_point)
     : m_region_bytes(per_region_bytes), m_ssbo_align(alignment), m_binding_point(binding_point)
 {
@@ -51,6 +51,22 @@ FrameRingBuffer::Slot FrameRingBuffer::allocate(size_t bytes, size_t align)
     }
     uint32_t offset = static_cast<uint32_t>(ptr - m_mapped);
     return {ptr, offset, static_cast<uint32_t>(bytes)};
+}
+
+FrameRingBuffer::SlotIndex FrameRingBuffer::allocate_slot(uint32_t stride)
+{
+    assert(stride % 16 == 0);
+
+    // compute how far the next global byte is from a stride boundary and use that many bytes as padding
+    size_t global_next = m_current * m_region_bytes + m_regions[m_current].bytes_used();
+    size_t pad = (stride - (global_next % stride)) % stride;
+
+    auto _ = allocate(pad, 1);                                                  // burn some space as padding
+    Slot slot = allocate(stride, 1);                                            // allocate stride-sized slot
+    assert(slot.offset % stride == 0 && "slot is not on a slot-size boundary"); // sanity check
+
+    // when converting byte position into an element index, this division should now alwyas come out as a whole #
+    return {slot.ptr, slot.offset / stride};
 }
 
 void FrameRingBuffer::bind() const

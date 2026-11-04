@@ -7,7 +7,6 @@ layout(location = 2) in vec2 in_uv;
 struct PerDraw {
     mat4 model;
     vec4 tint;
-    vec4 _pad[3];
 };
 layout(std430, binding = 0) buffer DrawData {
     PerDraw draws[];

@@ -90,10 +90,9 @@ public:
 
         for (int i = 0; i < 3; ++i)
         {
-            auto [offset, bytes] = renderer.push_draw_data(PerDraw {.model = m_models[i]});
-            renderer.submit(
-                drz::gen_sort_key(0, m_pipeline),
-                {.state_id = m_pipeline, .mesh = m_cube, .draw_data_offset = offset, .draw_data_bytes = bytes});
+            const uint32_t index = renderer.push_draw_data(PerDraw {.model = m_models[i]});
+            renderer.submit(drz::gen_sort_key(0, m_pipeline),
+                            {.state_id = m_pipeline, .mesh = m_cube, .base_instance = index});
         }
     }
 

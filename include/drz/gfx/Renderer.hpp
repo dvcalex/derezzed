@@ -21,13 +21,6 @@ struct FrameStats
     float cpu_flush_ms = 0.0f; // elapsed time inside flush() this frame
 };
 
-struct DrawDataSlot
-{
-    void* ptr;
-    uint32_t offset;
-    uint32_t bytes;
-};
-
 using PipelineStateId = uint32_t;
 using SortKey = uint64_t;
 
@@ -110,11 +103,10 @@ inline bool operator!=(const PipelineState& lhs, const PipelineState& rhs)
 
 struct DrawPacket
 {
-    // TODO: instance count, base vertex, base instance, ssbo offset
+    // TODO: instance count
     PipelineStateId state_id = 0;
     MeshHandle mesh;
-    uint32_t draw_data_offset = 0; // byte offset into per-frame SSBO ring buffer
-    uint32_t draw_data_bytes = 0;  // 0 == this draw doesn't use per-draw data
+    uint32_t base_instance = 0; // element index
 };
 
 inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth = 0)
@@ -145,13 +137,13 @@ public:
 
     PipelineStateId register_state(const PipelineState& state);
 
-    DrawDataSlot allocate_draw_data(uint32_t bytes, uint32_t align);
-
-    template <typename T> std::pair<uint32_t, uint32_t> push_draw_data(const T& data)
+    template <typename T> uint32_t push_draw_data(const T& data)
     {
-        auto slot = allocate_draw_data(sizeof(T), alignof(T));
+        constexpr uint32_t stride = (sizeof(T) + 15u) & ~15u; // round up to what would be std430 boundary
+
+        auto slot = m_frame_ring_buffer->allocate_slot(stride);
         std::memcpy(slot.ptr, &data, sizeof(T));
-        return {slot.offset, slot.bytes};
+        return slot.index;
     }
 
     void submit(SortKey key, const DrawPacket& packet);
