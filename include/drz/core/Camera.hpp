@@ -16,10 +16,22 @@ public:
     inline Camera(vec3 pos, float yaw_deg, float pitch_deg) : m_pos(pos), m_yaw_deg(yaw_deg), m_pitch_deg(pitch_deg) {}
 
     void set_position(const vec3& pos);
-
     void set_yaw(float yaw_deg);
-
     void set_pitch(float pitch_deg);
+
+    constexpr const vec3& position() const
+    {
+        return m_pos;
+    }
+    constexpr float yaw() const
+    {
+        return m_yaw_deg;
+    }
+    constexpr float pitch() const
+    {
+        return m_pitch_deg;
+    }
+
 
     // calculate forward vector from yaw/pitch
     vec3 forward() const;
