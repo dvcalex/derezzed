@@ -1,9 +1,21 @@
-Eventual todos:
 - Offload draw command culling to compute shader
 - PipelineState
-    - granularity (apply state per-diff)
-    - finish blend
-    - finish stencil
-    - finish depth
-    - finish stencil (broken)
-    - finish scissor (broken)
+    - Granularity (apply state per-diff)
+    - Finish blend
+    - Finish stencil
+    - Finish depth
+    - Finish stencil (broken)
+    - Finish scissor (broken)
+- Add textures to PipelineState
+- Fix gen_sort_key negative-depth bug in Renderer.hpp:114
+- Input handling and API on Engine (support key_down/pressed/released, mouse pos/relative, grab)
+- Camera controls like WASD and mouse look
+- Pass dt in seconds to App::update
+- Do real GPU instancing
+- glTF scene loading support for nodes, transforms, materials, etc.
+- Implement Multipass system in Renderer
+    - sRGB or gamma correction pass
+    - FBOs and render targets to make post-processing passes (fullscreen triangle)
+- Texture lifetime and mesh lifetime
+- Transparency sorting (needs the depth fix first)
+- Better Ring-buffer overflow asserts with clear messages
