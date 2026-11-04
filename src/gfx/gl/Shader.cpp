@@ -3,6 +3,7 @@
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <filesystem>
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
@@ -28,6 +29,56 @@ static std::string get_program_source(const std::string& filepath)
     return str;
 }
 
+// Takes source code as a string, extracts linked files, then replace each include where it appears in the original
+// source. Returns new source with linkage handled.
+static std::string handle_linkage(const std::string& source, const std::string& source_filepath)
+{
+    std::istringstream source_stream(source);
+    std::string line;
+    std::string output;
+
+    while (std::getline(source_stream, line))
+    {
+        std::istringstream line_stream(line);
+        std::string directive;
+        line_stream >> directive;
+
+        if (directive == "#include")
+        {
+            // parse quoted file path from remainder of line_stream
+            line_stream >> std::ws;
+
+            if (line_stream.get() != '"')
+            {
+                throw std::runtime_error("Expected quoted include path in " + source_filepath);
+            }
+
+            std::string include_path;
+            if (!std::getline(line_stream, include_path, '"') || line_stream.eof() || include_path.empty())
+            {
+                throw std::runtime_error("Invalid include path in " + source_filepath);
+            }
+
+            const auto resolved_path =
+                (std::filesystem::path(source_filepath).parent_path() / include_path).lexically_normal();
+
+            const std::string filepath = resolved_path.string();
+
+            const std::string included_source = get_program_source(filepath);
+
+            output += handle_linkage(included_source, filepath);
+            output += '\n';
+        }
+        else
+        {
+            // append the original line and '\n' to output
+            output += line;
+            output += '\n';
+        }
+    }
+    return output;
+}
+
 static GLuint compile_shader(GLenum type, const std::string& source)
 {
     GLuint id = glCreateShader(type);
@@ -47,7 +98,8 @@ static GLuint compile_shader(GLenum type, const std::string& source)
 
         glDeleteShader(id);
 
-        throw std::runtime_error(std::string("Failed to compile ") + (type == GL_VERTEX_SHADER ? "vertex" : "fragment") + " shader:\n" + message);
+        throw std::runtime_error(std::string("Failed to compile ") +
+                                 (type == GL_VERTEX_SHADER ? "vertex" : "fragment") + " shader:\n" + message);
     }
     return id;
 }
@@ -77,6 +129,10 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
     // grab source code
     std::string vert_src = get_program_source(vertex_path);
     std::string frag_src = get_program_source(fragment_path);
+
+    // handle linkage
+    vert_src = handle_linkage(vert_src, vertex_path);
+    frag_src = handle_linkage(frag_src, fragment_path);
 
     // compile
     GLuint vert_id = compile_shader(GL_VERTEX_SHADER, vert_src);
@@ -127,7 +183,8 @@ Shader::~Shader()
     glDeleteProgram(m_program_id);
 }
 
-Shader::Shader(Shader&& other) noexcept : m_program_id(other.m_program_id), m_uniform_location_cache(std::move(other.m_uniform_location_cache))
+Shader::Shader(Shader&& other) noexcept
+    : m_program_id(other.m_program_id), m_uniform_location_cache(std::move(other.m_uniform_location_cache))
 {
     other.m_program_id = 0; // prevent gl from releasing program
 }
