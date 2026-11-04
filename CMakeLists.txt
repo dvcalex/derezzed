@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.26)
 project(drz VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -10,7 +10,7 @@ option(DRZ_ENABLE_LOGGING "Keep DRZ logging enabled in Release builds" OFF)
 # Make compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# executables go to build/bin
+# Executables go to build/bin
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Vendoring all deps
@@ -62,7 +62,6 @@ target_link_libraries(${PROJECT_NAME}
 
 function(drz_add_demo name)
   set(dir "${CMAKE_CURRENT_SOURCE_DIR}/demo/${name}")
-  set(res_dir "${dir}/res")
 
   add_executable(${name} "${dir}/main.cpp")
   target_link_libraries(${name} PRIVATE ${PROJECT_NAME})
@@ -73,30 +72,23 @@ function(drz_add_demo name)
             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}/$<0:>"
     )
 
-  if(IS_DIRECTORY "${res_dir}")
-    add_custom_command(
-            TARGET ${name}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E rm -rf
-                    "$<TARGET_FILE_DIR:${name}>/res"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${res_dir}"
-                    "$<TARGET_FILE_DIR:${name}>/res"
-            COMMENT "Copying resources for ${name}"
-            VERBATIM
-        )
-  endif()
+  set(res_dirs)
+  foreach(res_dir IN ITEMS "${dir}/res" "${CMAKE_CURRENT_SOURCE_DIR}/res")
+    if(IS_DIRECTORY "${res_dir}")
+      list(APPEND res_dirs "${res_dir}")
+    endif()
+  endforeach()
 
-  if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res")
-    add_custom_command(
-            TARGET ${name}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${CMAKE_CURRENT_SOURCE_DIR}/res"
+  if(res_dirs)
+    # Run every build
+    add_custom_target(${name}_resources
+            COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+                    ${res_dirs}
                     "$<TARGET_FILE_DIR:${name}>/res"
-            COMMENT "Copying shared resources for ${name}"
+            COMMENT "Updating resources for ${name}"
             VERBATIM
         )
+    add_dependencies(${name} ${name}_resources)
   endif()
 endfunction()
 
