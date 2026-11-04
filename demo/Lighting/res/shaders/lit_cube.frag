@@ -16,7 +16,7 @@ uniform sampler2D u_albedo;
 void main()
 {
     // hardcoded material
-    vec3 albedo = texture(u_albedo, v_uv.xy).rgb;
+    vec3 albedo = texture(u_albedo, v_uv).rgb;
     float shininess = 48.f;
     vec3 ambient_light_color = vec3(0.08f);
 
