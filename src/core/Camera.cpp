@@ -17,12 +17,31 @@ void Camera::set_position(const vec3& pos)
 
 void Camera::set_yaw(float yaw_deg)
 {
-    m_yaw_deg = yaw_deg;
+    m_yaw_deg = std::fmod(yaw_deg, 360.f);
 }
 
 void Camera::set_pitch(float pitch_deg)
 {
     m_pitch_deg = std::clamp(pitch_deg, -89.0f, 89.0f);
+}
+
+void Camera::rotate(float yaw_delta_deg, float pitch_delta_deg)
+{
+    set_yaw(m_yaw_deg + yaw_delta_deg);
+    set_pitch(m_pitch_deg + pitch_delta_deg);
+}
+
+void Camera::translate_local(float x, float y, float z)
+{
+    m_pos += forward() * z + right() * x + up() * y;
+}
+
+void Camera::translate_local_world_aligned(float x, float y, float z)
+{
+    vec3 r = right();
+    // right vector rotated 90deg about y-axis points towards the forward vector in the xz plane
+    vec3 xz_proj_f {r.z, 0.f, -r.x};
+    m_pos += xz_proj_f * z + r * x + vec3(0.f, 1.f, 0.f) * y; // ignore xz components so y moves along world y axis
 }
 
 vec3 Camera::forward() const
