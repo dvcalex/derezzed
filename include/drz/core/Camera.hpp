@@ -19,6 +19,15 @@ public:
     void set_yaw(float yaw_deg);
     void set_pitch(float pitch_deg);
 
+    // Rotate by mouse delta scaled degrees
+    void rotate(float yaw_delta_deg, float pitch_delta_deg);
+
+    // Move along camera's local axes
+    void translate_local(float x, float y, float z);
+
+    // Move along camera's world-aligned local axes
+    void translate_local_world_aligned(float x, float y, float z);
+
     constexpr const vec3& position() const
     {
         return m_pos;

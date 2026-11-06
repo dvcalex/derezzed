@@ -1,3 +1,4 @@
+#include "SDL3/SDL_scancode.h"
 #include "drz/core/Engine.hpp"
 #include "drz/core/App.hpp"
 #include "drz/core/Camera.hpp"
@@ -18,6 +19,7 @@
 #include <string>
 
 using glm::mat4;
+using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
@@ -37,6 +39,8 @@ class Lighting : public drz::App
 public:
     void init(drz::Renderer& renderer) override
     {
+        m_engine->set_mouse_grabbed(true);
+
         m_pool.emplace(200000, 600000);
 
         const std::string path = res_path("cube.glb");
@@ -62,9 +66,30 @@ public:
         renderer.use_mesh_pool(*m_pool);
     }
 
-    void handle_event(const SDL_Event&) override {}
+    void handle_event(const SDL_Event& event) override {}
 
-    void update(float dt_ms, double) override {}
+    void update(float dt_ms, double elapsed_ms) override
+    {
+        float move_speed = 0.02;
+        vec3 move_input {0.f};
+        if (m_engine->key_down(SDL_SCANCODE_W))
+            move_input.z += dt_ms * move_speed;
+        if (m_engine->key_down(SDL_SCANCODE_S))
+            move_input.z -= dt_ms * move_speed;
+        if (m_engine->key_down(SDL_SCANCODE_A))
+            move_input.x -= dt_ms * move_speed;
+        if (m_engine->key_down(SDL_SCANCODE_D))
+            move_input.x += dt_ms * move_speed;
+        if (m_engine->key_down(SDL_SCANCODE_Q))
+            move_input.y -= dt_ms * move_speed;
+        if (m_engine->key_down(SDL_SCANCODE_E))
+            move_input.y += dt_ms * move_speed;
+        m_camera->translate_local(move_input.x, move_input.y, move_input.z);
+
+        float rot_speed = 0.1;
+        auto [x, y] = m_engine->mouse_delta();
+        m_camera->rotate(x * rot_speed, -y * rot_speed);
+    }
 
     void render(drz::Renderer& renderer) override
     {
