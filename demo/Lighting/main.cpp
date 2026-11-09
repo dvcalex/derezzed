@@ -1,4 +1,3 @@
-#include "SDL3/SDL_scancode.h"
 #include "drz/core/Engine.hpp"
 #include "drz/core/App.hpp"
 #include "drz/core/Camera.hpp"
@@ -7,8 +6,7 @@
 #include "drz/gfx/MeshPool.hpp"
 #include "drz/gfx/ModelLoader.hpp"
 #include "drz/gfx/Texture.hpp"
-#include "drz/util/Logger.hpp"
-
+#include "drz/common/CameraController.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -57,6 +55,7 @@ public:
         m_albedo_tex->bind(0);
 
         m_camera.emplace(vec3(0.f, 2.f, 13.f), 0.f, -15.f); // setup camera
+        m_camera_cont.emplace(*m_camera, *m_engine, 0.04f, 0.15f);
 
         // Renderer registration
         m_pipeline = renderer.register_state({.shader = m_shader->handle(),
@@ -70,25 +69,7 @@ public:
 
     void update(float dt_ms, double elapsed_ms) override
     {
-        float move_speed = 0.02;
-        vec3 move_input {0.f};
-        if (m_engine->key_down(SDL_SCANCODE_W))
-            move_input.z += dt_ms * move_speed;
-        if (m_engine->key_down(SDL_SCANCODE_S))
-            move_input.z -= dt_ms * move_speed;
-        if (m_engine->key_down(SDL_SCANCODE_A))
-            move_input.x -= dt_ms * move_speed;
-        if (m_engine->key_down(SDL_SCANCODE_D))
-            move_input.x += dt_ms * move_speed;
-        if (m_engine->key_down(SDL_SCANCODE_Q))
-            move_input.y -= dt_ms * move_speed;
-        if (m_engine->key_down(SDL_SCANCODE_E))
-            move_input.y += dt_ms * move_speed;
-        m_camera->translate_local(move_input.x, move_input.y, move_input.z);
-
-        float rot_speed = 0.1;
-        auto [x, y] = m_engine->mouse_delta();
-        m_camera->rotate(x * rot_speed, -y * rot_speed);
+        m_camera_cont->update(dt_ms);
     }
 
     void render(drz::Renderer& renderer) override
@@ -114,6 +95,7 @@ private:
     std::optional<drz::Texture> m_albedo_tex;
     drz::PipelineStateId m_pipeline = 0;
     std::optional<drz::Camera> m_camera;
+    std::optional<drz::FPSCameraController> m_camera_cont;
 };
 
 drz::App* create_app()

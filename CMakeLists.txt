@@ -33,6 +33,7 @@ add_library(${PROJECT_NAME} STATIC
     src/gfx/gl/Texture.cpp
     src/gfx/gl/ModelLoader.cpp
     src/util/Logger.cpp
+    src/common/CameraController.cpp
 
     vendor/glad/src/gl.c
     vendor/tinygltf/tinygltf.cpp
