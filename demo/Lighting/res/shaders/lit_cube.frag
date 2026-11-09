@@ -18,7 +18,7 @@ void main()
     // hardcoded material
     vec3 albedo = texture(u_albedo, v_uv).rgb;
     float shininess = 48.f;
-    vec3 ambient_light_color = vec3(0.08f);
+    vec3 ambient = vec3(0.08f);
 
     // recall: interpolated normals are not guarenteed unit length
     vec3 normal = normalize(v_normal);
@@ -26,7 +26,7 @@ void main()
     vec3 light_dir = normalize(u_light_pos - v_world_pos);
 
     vec3 lit = blinn_phong(normal, view_dir, light_dir, u_light_color, albedo, shininess);
-    vec3 color = ambient_light_color + lit;
+    vec3 color = ambient * albedo + lit;
 
     out_color = vec4(color, 1.f);
 }
