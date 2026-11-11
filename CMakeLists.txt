@@ -32,6 +32,7 @@ add_library(${PROJECT_NAME} STATIC
     src/gfx/gl/IndirectRingBuffer.cpp
     src/gfx/gl/Texture.cpp
     src/gfx/gl/ModelLoader.cpp
+    src/gfx/gl/RenderTarget.cpp
     src/util/Logger.cpp
     src/common/CameraController.cpp
 
