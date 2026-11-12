@@ -5,6 +5,7 @@
 #include "drz/util/Logger.hpp"
 #include "drz/util/DebugBreak.hpp"
 #include "drz/gfx/FrameRingBuffer.hpp"
+#include "drz/gfx/RenderTarget.hpp"
 
 #include <glad/gl.h> // must precede <SDL3/SDL_opengl.h>
 
@@ -257,10 +258,8 @@ Renderer::Renderer(SDL_Window* window)
     }
 
     // Set initial viewport in pixel size
-    int w = 0;
-    int h = 0;
-    SDL_GetWindowSizeInPixels(window, &w, &h);
-    glViewport(0, 0, w, h); // set viewport to window size
+    SDL_GetWindowSizeInPixels(window, &m_width, &m_height);
+    glViewport(0, 0, m_width, m_height); // set viewport to window size
 
     // Query ssbo alignment
     GLint ssbo_align = 0;
@@ -285,6 +284,20 @@ Renderer::~Renderer()
 void Renderer::use_mesh_pool(MeshPool& pool)
 {
     m_mesh_pool = &pool;
+}
+
+void Renderer::bind_target(const RenderTarget* target)
+{
+    if (target)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, target->framebuffer_handle());
+        glViewport(0, 0, target->width(), target->height());
+    }
+    else
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, m_width, m_height);
+    }
 }
 
 PipelineStateId Renderer::register_state(const PipelineState& state_to_register)
@@ -459,9 +472,34 @@ void Renderer::apply_pipeline_state(const PipelineState& state) const
     glScissor(state.scissor_x, state.scissor_y, state.scissor_width, state.scissor_height);
 }
 
+void Renderer::blit_to_screen(const RenderTarget& source)
+{
+    // point render target fb to copy to window fb
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, source.framebuffer_handle());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // 0 is default framebuffer, so window
+
+    // copy
+    glBlitFramebuffer(0,
+                      0,
+                      source.width(),
+                      source.height(), // read region
+                      0,
+                      0,
+                      m_width,
+                      m_height,            // write region
+                      GL_COLOR_BUFFER_BIT, // copy only color TODO: depth?
+                      GL_NEAREST);
+
+    // state cleanup
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, m_width, m_height);
+}
+
 void Renderer::set_viewport(int width, int height)
 {
     glViewport(0, 0, width, height);
+    m_width = width;
+    m_height = height;
 }
 
 void Renderer::clear(float r, float g, float b, float a)

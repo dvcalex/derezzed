@@ -21,14 +21,26 @@ public:
     void bind() const;
     static void unbind();
 
-    // get color texture handle
-    uint32_t color_texture() const;
-    // get depth texture handle
-    uint32_t depth_texture() const;
-    // get width
-    int width() const;
-    // get height
-    int height() const;
+    constexpr uint32_t framebuffer_handle() const
+    {
+        return m_fbo_handle;
+    }
+    constexpr uint32_t color_tex_handle() const
+    {
+        return m_color_tex_handle;
+    }
+    constexpr uint32_t depth_tex_handle() const
+    {
+        return m_depth_tex_handle;
+    }
+    constexpr int width() const
+    {
+        return m_width;
+    }
+    constexpr int height() const
+    {
+        return m_height;
+    }
 
 private:
     uint32_t m_fbo_handle = 0;       // frame buffer object handle

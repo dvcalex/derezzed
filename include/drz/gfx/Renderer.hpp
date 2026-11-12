@@ -6,7 +6,6 @@
 #include <SDL3/SDL_video.h>
 #include <vector>
 #include <cstdint>
-#include <utility>
 #include <cstring>
 #include <memory>
 
@@ -100,7 +99,6 @@ inline bool operator!=(const PipelineState& lhs, const PipelineState& rhs)
     return !(lhs == rhs);
 }
 
-
 struct DrawPacket
 {
     // TODO: instance count
@@ -113,6 +111,8 @@ inline SortKey gen_sort_key(uint8_t pass, PipelineStateId state, uint32_t depth 
 {
     return (uint64_t(pass) << 56) | ((uint64_t(state) & 0xFFFFFFull) << 32) | uint64_t(depth); // :(
 }
+
+class RenderTarget;
 
 class Renderer
 {
@@ -135,6 +135,10 @@ public:
 
     void use_mesh_pool(MeshPool& pool);
 
+    // Tell the renderer where to render to. If nullptr, render to window's backbuffer.
+    void bind_target(const RenderTarget* target);
+
+    // Add a new pipeline state to the states list. Returns an id to that state.
     PipelineStateId register_state(const PipelineState& state);
 
     template <typename T> uint32_t push_draw_data(const T& data)
@@ -148,12 +152,14 @@ public:
 
     void submit(SortKey key, const DrawPacket& packet);
 
-    /**
-     * @brief Flush current draw commands buffer and make draw calls
-     */
+    // Flush current draw commands buffer and make draw calls.
     void flush();
 
-    void set_viewport(int width, int height); // called by Engine on window resize
+    // "Blit", or block image transfer, pixels from source to screen.
+    void blit_to_screen(const RenderTarget& source);
+
+    // Called by Engine on window resize.
+    void set_viewport(int width, int height);
 
     void clear(float r, float g, float b, float a);
 
@@ -169,6 +175,9 @@ public:
 
 private:
     void apply_pipeline_state(const PipelineState& state) const;
+
+    int m_width = 0;
+    int m_height = 0;
 
     SDL_GLContext m_context = nullptr;
     FrameStats m_frame_stats;

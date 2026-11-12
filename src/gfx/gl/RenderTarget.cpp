@@ -113,25 +113,4 @@ void RenderTarget::unbind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
-uint32_t RenderTarget::color_texture() const
-{
-    return m_color_tex_handle;
-}
-
-uint32_t RenderTarget::depth_texture() const
-{
-    return m_depth_tex_handle;
-}
-
-int RenderTarget::width() const
-{
-    return m_width;
-}
-
-int RenderTarget::height() const
-{
-    return m_height;
-}
-
 } // namespace drz
