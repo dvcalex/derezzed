@@ -96,6 +96,6 @@ endfunction()
 
 
 # Demos
-foreach(demo Hello MatrixRain Stress Scene3D Pumpkin ManyCubes Lighting)
+foreach(demo Hello MatrixRain Stress Scene3D Pumpkin ManyCubes Lighting MultiPass)
   drz_add_demo(${demo})
 endforeach()
