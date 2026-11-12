@@ -39,6 +39,9 @@ public:
     void init(drz::Renderer& renderer) override
     {
         auto [fb_width, fb_height] = m_engine->framebuffer_size();
+
+        m_rt.emplace(fb_width, fb_height, true);
+
         m_engine->set_mouse_grabbed(true);
 
         m_pool.emplace(200000, 600000);
@@ -59,8 +62,6 @@ public:
         m_camera.emplace(vec3(0.f, 2.f, 13.f), 0.f, -15.f); // setup camera
         m_camera_cont.emplace(*m_camera, *m_engine, 0.04f, 0.15f);
 
-        m_rt.emplace(fb_width, fb_height, true);
-
         // Renderer registration
         m_pipeline = renderer.register_state({.shader = m_shader->handle(),
                                               .enable_depth_test = true,
@@ -78,12 +79,11 @@ public:
 
     void render(drz::Renderer& renderer) override
     {
-        auto [fb_width, fb_height] = m_engine->framebuffer_size();
-        
-        // present last frame's frame to window
-        drz::RenderTarget::unbind();
-        
-        
+        // copy last frame's contents to screen
+        renderer.blit_to_screen(*m_rt);
+
+        renderer.bind_target(&*m_rt);
+
         renderer.clear(0.05f, 0.06f, 0.08f, 1.0f);
 
         auto [w, h] = m_engine->framebuffer_size();
