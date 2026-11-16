@@ -11,7 +11,7 @@ RenderTarget::RenderTarget(int width, int height, bool depth) : m_width(width), 
     assert(width > 0 && height > 0);
 
     // set up framebuffer object
-    glGenFramebuffers(1, &m_fbo_handle);
+    glCreateFramebuffers(1, &m_fbo_handle);
 
     // handle and attach color texture to fbo
     // create texture object
