@@ -12,55 +12,45 @@ RenderTarget::RenderTarget(int width, int height, bool depth) : m_width(width), 
 
     // set up framebuffer object
     glGenFramebuffers(1, &m_fbo_handle);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_handle);
 
     // handle and attach color texture to fbo
-    // gen and bind texture slot
-    glGenTextures(1, &m_color_tex_handle);
-    glBindTexture(GL_TEXTURE_2D, m_color_tex_handle);
+    // create texture object
+    glCreateTextures(GL_TEXTURE_2D, 1, &m_color_tex_handle);
 
-    // set texture params
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // assign tex params
+    glTextureParameteri(m_color_tex_handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(m_color_tex_handle, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(m_color_tex_handle, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(m_color_tex_handle, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    // reserve space in gpu memory for our color texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    // specify storage requirements and reserve space
+    glTextureStorage2D(m_color_tex_handle, 1, GL_RGBA8, width, height);
 
-    // attatch color component to framebuffer
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_color_tex_handle, 0);
+    // attach to fbo
+    glNamedFramebufferTexture(m_fbo_handle, GL_COLOR_ATTACHMENT0, m_color_tex_handle, 0);
 
     // handle and attach depth to fbo
     if (depth)
     {
         // gen and bind texture slot
-        glGenTextures(1, &m_depth_tex_handle);
-        glBindTexture(GL_TEXTURE_2D, m_depth_tex_handle);
+        glCreateTextures(GL_TEXTURE_2D, 1, &m_depth_tex_handle);
 
         // set texture params
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_depth_tex_handle, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTextureParameteri(m_depth_tex_handle, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTextureParameteri(m_depth_tex_handle, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_depth_tex_handle, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        // reserve space in gpu memory for our depth texture
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        // specify storage requirements and reserve space
+        glTextureStorage2D(m_depth_tex_handle, 1, GL_DEPTH_COMPONENT24, width, height);
 
-        // attatch depth component to framebuffer
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_tex_handle, 0);
-
-        glBindTexture(GL_TEXTURE_2D, 0); // undbind depth
+        // attatch to fbo
+        glNamedFramebufferTexture(m_fbo_handle, GL_DEPTH_ATTACHMENT, m_depth_tex_handle, 0);
     }
 
-    glBindTexture(GL_TEXTURE_2D, 0); // unbind color
-
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    GLenum status = glCheckNamedFramebufferStatus(m_fbo_handle, GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE)
         DRZ_LOGF("Framebuffer incomplete with status {}", static_cast<uint32_t>(status));
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); // unbind fbo
 }
 
 RenderTarget::~RenderTarget()
