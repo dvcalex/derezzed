@@ -18,9 +18,6 @@ public:
     RenderTarget(RenderTarget&& other) noexcept;
     RenderTarget& operator=(RenderTarget&& other) noexcept;
 
-    void bind() const;
-    static void unbind();
-
     constexpr uint32_t framebuffer_handle() const
     {
         return m_fbo_handle;

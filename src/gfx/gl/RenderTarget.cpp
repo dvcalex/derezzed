@@ -93,14 +93,4 @@ RenderTarget& RenderTarget::operator=(RenderTarget&& other) noexcept
     }
     return *this;
 }
-
-void RenderTarget::bind() const
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_handle);
-}
-
-void RenderTarget::unbind()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
 } // namespace drz
