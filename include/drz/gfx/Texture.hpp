@@ -21,7 +21,6 @@ public:
     Texture& operator=(Texture&& other) noexcept;
 
     void bind(uint32_t texture_slot = 0) const;
-    void unbind() const;
 
     int getWidth() const
     {
