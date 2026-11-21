@@ -326,6 +326,10 @@ void Renderer::submit(SortKey key, const DrawPacket& packet)
 
 void Renderer::flush()
 {
+    // early exit since nothing to flush
+    if (m_sort_keys.empty())
+        return;
+
     auto t0 = std::chrono::steady_clock::now(); // starting time
 
     assert(m_mesh_pool && "Renderer::flush called before use_mesh_pool");
@@ -411,16 +415,21 @@ void Renderer::flush()
         run_start = run_end;
     }
 
+    // clear related state after it's been sent off to gpu
     m_sort_keys.clear();
     m_draw_indices.clear();
     m_draws.clear();
 
+    // ending time
+    auto t1 = std::chrono::steady_clock::now();
+    m_frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
+}
+
+void Renderer::end_frame()
+{
     // rotate to next frame's region/frame and reset it
     m_frame_ring_buffer->next_frame();
     m_indirect_ring_buffer->next_frame();
-
-    auto t1 = std::chrono::steady_clock::now(); // ending time
-    m_frame_stats.cpu_flush_ms += std::chrono::duration<float, std::milli>(t1 - t0).count();
 }
 
 void Renderer::apply_pipeline_state(const PipelineState& state) const

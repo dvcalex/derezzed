@@ -78,8 +78,11 @@ void Engine::tick()
     // render with app's render func, pass in renderer for app to submit draw calls
     m_app->render(*m_renderer);
 
-    // flush draw commands to make draw calls
+    // catch all for stuff that wasnt flushed
     m_renderer->flush();
+
+    // finally, rotate buffer
+    m_renderer->end_frame();
 
     uint64_t now_ms = SDL_GetTicks();
     if (now_ms - m_last_stats_log_ms >= 250)

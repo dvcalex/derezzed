@@ -155,6 +155,9 @@ public:
     // Flush current draw commands buffer and make draw calls.
     void flush();
 
+    // Rotates current frame buffer and resets the new one.
+    void end_frame();
+
     // "Blit", or block image transfer, pixels from source to screen.
     void blit_to_screen(const RenderTarget& source);
 
